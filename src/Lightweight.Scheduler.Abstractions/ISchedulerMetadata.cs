@@ -1,7 +1,7 @@
-﻿using System;
-
-namespace Lightweight.Scheduler.Abstractions
+﻿namespace Lightweight.Scheduler.Abstractions
 {
+    using System;
+
     public interface ISchedulerMetadata : ISchedulerId
     {
         TimeSpan HeartbeatInterval { get; }
