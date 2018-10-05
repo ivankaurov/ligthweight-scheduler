@@ -5,12 +5,12 @@
 
     public interface IJobStore<TJobKey, TSchedulerKey>
     {
-        Task ScheduleJob(IJobMetadataId<TJobKey> jobId, IJobMetadata jobMetadata);
+        Task ScheduleJob(IIdentifier<TJobKey> jobId, IJobMetadata jobMetadata);
 
-        Task<ICollection<(IJobMetadataId<TJobKey> id, IJobMetadata metadata)>> GetJobsForExecution();
+        Task<ICollection<(IIdentifier<TJobKey> id, IJobMetadata metadata)>> GetJobsForExecution();
 
-        Task SetJobOwner(IJobMetadataId<TJobKey> jobMetadataId, ISchedulerId<TSchedulerKey> schedulerId);
+        Task SetJobOwner(IIdentifier<TJobKey> jobMetadataId, IIdentifier<TSchedulerKey> schedulerId);
 
-        Task ClearJobOwner(IJobMetadataId<TJobKey> jobMetadataId);
+        Task ClearJobOwner(IIdentifier<TJobKey> jobMetadataId);
     }
 }
