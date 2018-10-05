@@ -3,12 +3,12 @@
     using System.Collections.Generic;
     using System.Threading.Tasks;
 
-    public interface ISchedulerMetadataStore
+    public interface ISchedulerMetadataStore<TStorageId>
     {
-        Task Heartbeat(ISchedulerId schedulerId);
+        Task Heartbeat(ISchedulerId<TStorageId> schedulerId);
 
-        Task<ICollection<ISchedulerMetadata>> GetSchedulers();
+        Task<ICollection<(ISchedulerId<TStorageId> id, ISchedulerMetadata metadata)>> GetSchedulers();
 
-        Task RemoveScheduler(ISchedulerId schedulerId);
+        Task RemoveScheduler(ISchedulerId<TStorageId> schedulerId);
     }
 }

@@ -2,7 +2,7 @@
 {
     using System.Threading.Tasks;
 
-    public interface IScheduler : ISchedulerMetadata
+    public interface IScheduler
     {
         Task Start();
 

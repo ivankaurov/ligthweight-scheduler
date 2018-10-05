@@ -2,7 +2,7 @@
 {
     using System;
 
-    public interface ISchedulerMetadata : ISchedulerId
+    public interface ISchedulerMetadata
     {
         TimeSpan HeartbeatInterval { get; }
 

@@ -3,14 +3,14 @@
     using System.Collections.Generic;
     using System.Threading.Tasks;
 
-    public interface IJobStore
+    public interface IJobStore<TJobKey, TSchedulerKey>
     {
-        Task ScheduleJob(IJobMetadata jobMetadata, ISchedulerId schedulerId);
+        Task ScheduleJob(IJobMetadataId<TJobKey> jobId, IJobMetadata jobMetadata);
 
-        Task<ICollection<IJobMetadata>> GetJobsForExecution();
+        Task<ICollection<(IJobMetadataId<TJobKey> id, IJobMetadata metadata)>> GetJobsForExecution();
 
-        Task SetJobOwner(IJobMetadataId jobMetadataId, ISchedulerId schedulerId);
+        Task SetJobOwner(IJobMetadataId<TJobKey> jobMetadataId, ISchedulerId<TSchedulerKey> schedulerId);
 
-        Task ClearJobOwner(IJobMetadataId jobMetadataId);
+        Task ClearJobOwner(IJobMetadataId<TJobKey> jobMetadataId);
     }
 }

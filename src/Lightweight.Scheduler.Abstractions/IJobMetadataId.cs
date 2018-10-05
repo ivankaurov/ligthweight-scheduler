@@ -1,6 +1,6 @@
 ﻿namespace Lightweight.Scheduler.Abstractions
 {
-    public interface IJobMetadataId : IVersionedId
+    public interface IJobMetadataId<TStorageId> : IIdentifier<TStorageId>
     {
     }
 }

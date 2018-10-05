@@ -3,7 +3,7 @@
     using System;
     using System.Collections.Generic;
 
-    public interface IJobMetadata : IJobMetadataId
+    public interface IJobMetadata
     {
         Type JobClass { get; }
 

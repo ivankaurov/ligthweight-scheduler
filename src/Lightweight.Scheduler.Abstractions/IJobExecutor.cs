@@ -5,6 +5,6 @@
 
     public interface IJobExecutor
     {
-        Task StartJobExecution(IJobMetadata jobMetadata, ISchedulerId schedulerId, CancellationToken cancellationToken);
+        Task InvokeJob(IJobMetadata jobMetadata, CancellationToken cancellationToken);
     }
 }
