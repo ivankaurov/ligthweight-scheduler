@@ -2,6 +2,7 @@
 {
     using System;
     using System.Diagnostics;
+    using System.Runtime.CompilerServices;
     using System.Threading;
     using System.Threading.Tasks;
     using Lightweight.Scheduler.Abstractions;
@@ -11,8 +12,9 @@
     {
         private readonly ISchedulerMetadata metadata;
         private readonly ISchedulerMetadataStore<TStorageKey> schedulerMetadataStore;
+        private readonly ISchedulerStateMonitor<TStorageKey> schedulerStateMonitor;
+        private readonly IJobProcessor<TStorageKey> jobProcessor;
         private readonly ILogger<DefaultScheduler<TStorageKey>> logger;
-        private readonly TStorageKey schedulerId;
 
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
@@ -24,11 +26,15 @@
             TStorageKey schedulerId,
             ISchedulerMetadata schedulerMetadata,
             ISchedulerMetadataStore<TStorageKey> schedulerMetadataStore,
+            ISchedulerStateMonitor<TStorageKey> schedulerStateMonitor,
+            IJobProcessor<TStorageKey> jobProcessor,
             ILogger<DefaultScheduler<TStorageKey>> logger)
         {
-            this.schedulerId = schedulerId;
+            this.Id = schedulerId;
             this.metadata = schedulerMetadata;
             this.schedulerMetadataStore = schedulerMetadataStore;
+            this.schedulerStateMonitor = schedulerStateMonitor;
+            this.jobProcessor = jobProcessor;
             this.logger = logger;
         }
 
@@ -43,7 +49,7 @@
 
         public TimeSpan HeartbeatTimeout => this.metadata.HeartbeatTimeout;
 
-        public TStorageKey Id => this.schedulerId;
+        public TStorageKey Id { get; }
 
         public async Task Start()
         {
@@ -84,7 +90,7 @@
         {
             if (this.objectDisposed)
             {
-                throw new ObjectDisposedException($"{this.GetType().Name} {{{this.schedulerId}}}");
+                throw new ObjectDisposedException($"{this.GetType().Name} {{{this.Id}}}");
             }
         }
 
@@ -95,27 +101,50 @@
 
         private async Task Main()
         {
+            this.state = State.Running;
             var stopwatch = new Stopwatch();
             while (!this.cancellationTokenSource.IsCancellationRequested)
             {
                 stopwatch.Restart();
 
                 await this.DoHeartbeat().ConfigureAwait(false);
+                await this.DoClusterMonitoring().ConfigureAwait(false);
+                await this.ProcessJobs().ConfigureAwait(false);
 
                 stopwatch.Stop();
                 await this.WaitForNextIteration(stopwatch.Elapsed).ConfigureAwait(false);
             }
         }
 
-        private async Task DoHeartbeat()
+        private Task DoHeartbeat()
+        {
+            return this.DoChildAction(() => this.schedulerMetadataStore.Heartbeat(this));
+        }
+
+        private Task DoClusterMonitoring()
+        {
+            return this.DoChildAction(() => this.schedulerStateMonitor.MonitorClusterState(this, this.cancellationTokenSource.Token));
+        }
+
+        private Task ProcessJobs()
+        {
+            return this.DoChildAction(() => this.jobProcessor.ProcessJobs(this, this.cancellationTokenSource.Token));
+        }
+
+        private async Task DoChildAction(Func<Task> action, [CallerMemberName] string callerMemberName = null)
         {
             try
             {
-                await this.schedulerMetadataStore.Heartbeat(this).ConfigureAwait(false);
+                await action().ConfigureAwait(false);
+            }
+            catch (OperationCanceledException ex)
+            {
+                this.logger.LogWarning(ex, "{0} is cancelled", callerMemberName);
+                throw;
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, "Heartbeat failed: {0}", ex.Message);
+                this.logger.LogError(ex, "{0} failed: {1}", callerMemberName, ex);
             }
         }
 
