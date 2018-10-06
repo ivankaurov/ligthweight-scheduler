@@ -9,8 +9,8 @@
 
         Task<ICollection<(IIdentifier<TJobKey> id, IJobMetadata metadata)>> GetJobsForExecution();
 
-        Task SetJobOwner(IIdentifier<TJobKey> jobMetadataId, IIdentifier<TSchedulerKey> schedulerId);
+        Task SetJobOwner(IIdentifier<TJobKey> jobId, IIdentifier<TSchedulerKey> schedulerId);
 
-        Task ClearJobOwner(IIdentifier<TJobKey> jobMetadataId);
+        Task UpdateJob(IIdentifier<TJobKey> jobId, IJobMetadata metadata, IIdentifier<TSchedulerKey> schedulerId);
     }
 }

@@ -12,5 +12,7 @@
         TimeSpan? Timeout { get; }
 
         TimeSpan? Interval { get; }
+
+        void SetNextExecutionTime();
     }
 }
