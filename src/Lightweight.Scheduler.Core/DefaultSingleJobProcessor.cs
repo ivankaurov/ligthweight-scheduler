@@ -91,20 +91,35 @@
 
         private async Task ExecuteJob(IJobMetadata jobMetadata, CancellationToken cancellationToken)
         {
-            if (jobMetadata.Timeout > TimeSpan.Zero && jobMetadata.Timeout != Timeout.InfiniteTimeSpan)
+            try
             {
-                using (var timeoutCts = new CancellationTokenSource(jobMetadata.Timeout.Value))
+                if (jobMetadata.Timeout > TimeSpan.Zero && jobMetadata.Timeout != Timeout.InfiniteTimeSpan)
                 {
-                    using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, cancellationToken))
+                    using (var timeoutCts = new CancellationTokenSource(jobMetadata.Timeout.Value))
                     {
-                        await this.ExecuteJobInternal(jobMetadata, linkedCts.Token).ConfigureAwait(false);
+                        using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, cancellationToken))
+                        {
+                            await this.ExecuteJobInternal(jobMetadata, linkedCts.Token).ConfigureAwait(false);
+                        }
                     }
                 }
+                else
+                {
+                    await this.ExecuteJobInternal(jobMetadata, cancellationToken).ConfigureAwait(false);
+                }
             }
-            else
+            catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
             {
-                await this.ExecuteJobInternal(jobMetadata, cancellationToken).ConfigureAwait(false);
+                this.logger.LogWarning(ex, "Job execution was interrupted by external cancellation. Job will be rescheduled immediately");
+                throw;
             }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Job execution failed. Job will be rescheduled as usual. Failure Message: {0}", ex.Message);
+            }
+
+            jobMetadata.SetNextExecutionTime();
+            this.logger.LogTrace("Next execution time updated");
         }
 
         private async Task ExecuteJobInternal(IJobMetadata jobMetadata, CancellationToken cancellationToken)
@@ -121,9 +136,6 @@
                 sw.Stop();
                 this.logger.LogTrace("Job executed successfully in {0}", sw.Elapsed);
             }
-
-            jobMetadata.SetNextExecutionTime();
-            this.logger.LogTrace("Next execution time updated");
         }
 
         private async Task FinishJobExecution(IIdentifier<TJobKey> jobId, IJobMetadata jobMetadata)
