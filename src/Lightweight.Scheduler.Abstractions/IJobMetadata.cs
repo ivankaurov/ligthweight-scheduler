@@ -11,6 +11,8 @@
 
         TimeSpan? Timeout { get; }
 
+        DateTimeOffset? NextExecution { get; }
+
         void SetNextExecutionTime();
     }
 }

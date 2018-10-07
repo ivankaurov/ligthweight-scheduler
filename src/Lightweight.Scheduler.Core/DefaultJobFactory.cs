@@ -2,7 +2,6 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Threading;
     using Lightweight.Scheduler.Abstractions;
     using Microsoft.Extensions.DependencyInjection;
@@ -11,7 +10,7 @@
     {
         private readonly IServiceProvider serviceProvider;
 
-        private readonly AsyncLocal<Stack<IServiceScope>> scopes = new AsyncLocal<Stack<IServiceScope>>();
+        private readonly AsyncLocal<Stack<ServiceScopeWrapper>> scopes = new AsyncLocal<Stack<ServiceScopeWrapper>>();
 
         public DefaultJobFactory(IServiceProvider serviceProvider)
         {
@@ -23,17 +22,25 @@
             IServiceProvider provider;
             if (this.scopes.Value == null)
             {
-                this.scopes.Value = new Stack<IServiceScope>();
+                this.scopes.Value = new Stack<ServiceScopeWrapper>();
                 provider = this.serviceProvider;
             }
             else
             {
-                provider = this.scopes.Value.Count > 0 ? this.scopes.Value.Peek().ServiceProvider : this.serviceProvider;
+                provider = this.scopes.Value.Count > 0 ? this.scopes.Value.Peek().Scope.ServiceProvider : this.serviceProvider;
             }
 
-            var scope = provider.CreateScope();
-            this.scopes.Value.Push(scope);
-            return new ServiceScopeWrapper(scope, this);
+            var scope = new ServiceScopeWrapper(provider.CreateScope(), this);
+            try
+            {
+                this.scopes.Value.Push(scope);
+                return scope;
+            }
+            catch
+            {
+                scope.Dispose();
+                throw;
+            }
         }
 
         public IJob CreateJobInstance(IJobMetadata jobMetadata)
@@ -50,36 +57,37 @@
 
             if (!typeof(IJob).IsAssignableFrom(jobMetadata.JobClass))
             {
-                throw new ArgumentException(nameof(jobMetadata.JobClass) + " doesn't implement " + nameof(IJob), nameof(jobMetadata));
+                throw new ArgumentException($"{jobMetadata.JobClass} doesn't implement {nameof(IJob)}", nameof(jobMetadata));
             }
 
-            var provider = this.scopes.Value?.Count > 0 ? this.scopes.Value.Peek().ServiceProvider : this.serviceProvider;
+            var provider = this.scopes.Value?.Count > 0 ? this.scopes.Value.Peek().Scope.ServiceProvider : this.serviceProvider;
             return (IJob)provider.GetRequiredService(jobMetadata.JobClass);
         }
 
         private sealed class ServiceScopeWrapper : IDisposable
         {
-            private readonly IServiceScope scope;
             private readonly DefaultJobFactory owner;
             private bool objectDisposed;
 
             public ServiceScopeWrapper(IServiceScope scope, DefaultJobFactory owner)
             {
-                this.scope = scope;
+                this.Scope = scope;
                 this.owner = owner;
             }
+
+            public IServiceScope Scope { get; }
 
             public void Dispose()
             {
                 if (!this.objectDisposed)
                 {
-                    IServiceScope childScope;
-                    while (this.owner.scopes.Value?.Count > 0 && this.scope != (childScope = this.owner.scopes.Value.Pop()))
+                    ServiceScopeWrapper childScope;
+                    while (this.owner.scopes.Value?.Count > 0 && !ReferenceEquals(this, childScope = this.owner.scopes.Value.Pop()))
                     {
                         childScope.Dispose();
                     }
 
-                    this.scope.Dispose();
+                    this.Scope.Dispose();
                     this.objectDisposed = true;
                 }
             }
