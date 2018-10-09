@@ -84,9 +84,17 @@
                     ServiceScopeWrapper childScope;
                     while (this.owner.scopes.Value?.Count > 0 && !ReferenceEquals(this, childScope = this.owner.scopes.Value.Pop()))
                     {
-                        childScope.Dispose();
+                        childScope.CloseScope();
                     }
 
+                    this.CloseScope();
+                }
+            }
+
+            private void CloseScope()
+            {
+                if (!this.objectDisposed)
+                {
                     this.Scope.Dispose();
                     this.objectDisposed = true;
                 }
