@@ -3,7 +3,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    internal interface ISyncHelper
+    public interface ISyncHelper
     {
         Task<bool> WaitOne(CancellationToken cancellationToken);
 

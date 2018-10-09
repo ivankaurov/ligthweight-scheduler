@@ -53,10 +53,20 @@
                     this.logger.LogInformation("Job {0} execution completed", jobId);
                     return true;
                 }
+                catch
+                {
+                    // TODO - remove in release - added for debugging
+                    throw;
+                }
                 finally
                 {
-                    await this.FinishJobExecution(jobId, jobMetadata).ConfigureAwait(false);
+                    await this.ClearJobOwner(jobId, jobMetadata).ConfigureAwait(false);
                 }
+            }
+            catch
+            {
+                // TODO: Remove in release - added for debugging
+                throw;
             }
             finally
             {
@@ -138,7 +148,7 @@
             }
         }
 
-        private async Task FinishJobExecution(IIdentifier<TJobKey> jobId, IJobMetadata jobMetadata)
+        private async Task ClearJobOwner(IIdentifier<TJobKey> jobId, IJobMetadata jobMetadata)
         {
             try
             {

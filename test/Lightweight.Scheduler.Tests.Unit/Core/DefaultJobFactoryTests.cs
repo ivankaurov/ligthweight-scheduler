@@ -7,7 +7,7 @@
     using System.Threading.Tasks;
     using Lightweight.Scheduler.Abstractions;
     using Lightweight.Scheduler.Core;
-    using Lightweight.Scheduler.Tests.Unit.Internal;
+    using Lightweight.Scheduler.Tests.Unit.Utils;
     using Microsoft.Extensions.DependencyInjection;
     using Moq;
     using Xunit;
