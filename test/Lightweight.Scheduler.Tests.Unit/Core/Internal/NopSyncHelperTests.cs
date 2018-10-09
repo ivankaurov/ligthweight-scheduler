@@ -5,7 +5,7 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Lightweight.Scheduler.Core.Internal;
-    using Lightweight.Scheduler.Tests.Unit.Internal;
+    using Lightweight.Scheduler.Tests.Unit.Utils;
     using Xunit;
 
     public class NopSyncHelperTests

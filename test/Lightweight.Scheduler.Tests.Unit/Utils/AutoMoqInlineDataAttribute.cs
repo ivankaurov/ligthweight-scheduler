@@ -1,4 +1,4 @@
-﻿namespace Lightweight.Scheduler.Tests.Unit.Internal
+﻿namespace Lightweight.Scheduler.Tests.Unit.Utils
 {
     using AutoFixture.Xunit2;
 
