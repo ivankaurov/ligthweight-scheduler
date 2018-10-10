@@ -105,13 +105,7 @@
             {
                 if (jobMetadata.Timeout > TimeSpan.Zero && jobMetadata.Timeout != Timeout.InfiniteTimeSpan)
                 {
-                    using (var timeoutCts = new CancellationTokenSource(jobMetadata.Timeout.Value))
-                    {
-                        using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, cancellationToken))
-                        {
-                            await this.ExecuteJobInternal(jobMetadata, linkedCts.Token).ConfigureAwait(false);
-                        }
-                    }
+                    await this.ExecuteJobWithTimeout(jobMetadata, jobMetadata.Timeout.Value, cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
@@ -136,6 +130,24 @@
             catch (Exception ex)
             {
                 this.logger.LogError(ex, "Calculation of next execution time failed: {0}. Job will be rescheduled immediately", ex.Message);
+            }
+        }
+
+        private async Task ExecuteJobWithTimeout(IJobMetadata jobMetadata, TimeSpan timeout, CancellationToken cancellationToken)
+        {
+            using (var timeoutCts = new CancellationTokenSource(timeout))
+            {
+                using (var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, cancellationToken))
+                {
+                    try
+                    {
+                        await this.ExecuteJobInternal(jobMetadata, linkedCts.Token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException ex) when (timeoutCts.IsCancellationRequested)
+                    {
+                        this.logger.LogWarning(ex, "Job execution cancelled due timeout {0}: [1}. Job will be rescheduled as usual", timeout, ex.Message);
+                    }
+                }
             }
         }
 
