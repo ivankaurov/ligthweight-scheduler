@@ -131,7 +131,7 @@
             try
             {
                 jobMetadata.SetNextExecutionTime();
-                this.logger.LogTrace("Next execution time updated");
+                this.logger.LogTrace("Next execution time updated to {0}", jobMetadata.NextExecution);
             }
             catch (Exception ex)
             {
@@ -149,7 +149,7 @@
                 this.logger.LogTrace("Job created");
 
                 var sw = Stopwatch.StartNew();
-                await job.Invoke(jobMetadata.Context, cancellationToken).ConfigureAwait(false);
+                await job.Invoke(jobMetadata, cancellationToken).ConfigureAwait(false);
                 sw.Stop();
                 this.logger.LogTrace("Job executed successfully in {0}", sw.Elapsed);
             }

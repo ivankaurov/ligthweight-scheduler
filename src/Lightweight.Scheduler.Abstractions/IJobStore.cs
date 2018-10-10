@@ -5,8 +5,6 @@
 
     public interface IJobStore<TJobKey, TSchedulerKey>
     {
-        Task ScheduleJob(IIdentifier<TJobKey> jobId, IJobMetadata jobMetadata);
-
         Task<ICollection<(IIdentifier<TJobKey> id, IJobMetadata metadata)>> GetJobsForExecution();
 
         Task SetJobOwner(IIdentifier<TJobKey> jobId, IIdentifier<TSchedulerKey> schedulerId);

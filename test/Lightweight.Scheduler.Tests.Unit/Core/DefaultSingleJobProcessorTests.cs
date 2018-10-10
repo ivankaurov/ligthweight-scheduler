@@ -26,8 +26,8 @@
 
         public DefaultSingleJobProcessorTests()
         {
-            this.job.Setup(s => s.Invoke(It.IsAny<IDictionary<string, object>>(), It.IsAny<CancellationToken>()))
-                .Returns<IDictionary<string, object>, CancellationToken>((_, ct) =>
+            this.job.Setup(s => s.Invoke(It.IsAny<IJobMetadata>(), It.IsAny<CancellationToken>()))
+                .Returns<IJobMetadata, CancellationToken>((_, ct) =>
                 {
                     ct.ThrowIfCancellationRequested();
                     return Task.CompletedTask;
@@ -138,8 +138,8 @@
         {
             // Arrange
             jobMetadata.Setup(s => s.Timeout).Returns(TimeSpan.FromMilliseconds(100));
-            this.job.Setup(j => j.Invoke(It.IsAny<IDictionary<string, object>>(), It.IsAny<CancellationToken>()))
-                .Returns<IDictionary<string, object>, CancellationToken>(async (_, token) =>
+            this.job.Setup(j => j.Invoke(jobMetadata.Object, It.IsAny<CancellationToken>()))
+                .Returns<IJobMetadata, CancellationToken>(async (_, token) =>
                 {
                     await Task.Delay(1000, token);
                 });
@@ -166,7 +166,7 @@
           Exception ex)
         {
             // Arrange
-            this.job.Setup(j => j.Invoke(It.IsAny<IDictionary<string, object>>(), It.IsAny<CancellationToken>())).ThrowsAsync(ex);
+            this.job.Setup(j => j.Invoke(jobMetadata.Object, It.IsAny<CancellationToken>())).ThrowsAsync(ex);
 
             // Act
             var result = await this.sut.ProcessSingleJob(jobId, jobMetadata.Object, schedluerId, CancellationToken.None);
@@ -261,7 +261,7 @@
                 return this.job.Object;
             });
 
-            this.job.Setup(s => s.Invoke(jobMetadata.Object.Context, cancellationTokenSource.Token))
+            this.job.Setup(s => s.Invoke(jobMetadata.Object, cancellationTokenSource.Token))
                 .Returns(() =>
                 {
                     Assert.Equal(5, ++order);
