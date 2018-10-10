@@ -207,6 +207,27 @@
 
         [Theory]
         [AutoMoqData]
+        public async Task ShouldExecuteSimpleJobAndSwallowCalculateNextTimeException(
+         Exception ex,
+         IIdentifier<Guid> jobId,
+         IIdentifier<string> schedluerId,
+         Mock<IJobMetadata> jobMetadata)
+        {
+            // Arrange
+            jobMetadata.Setup(s => s.SetNextExecutionTime()).Throws(ex);
+
+            // Act
+            var result = await this.sut.ProcessSingleJob(jobId, jobMetadata.Object, schedluerId, CancellationToken.None);
+
+            // Assert
+            Assert.True(result);
+            this.jobStore.Verify(s => s.UpdateJob(jobId, jobMetadata.Object, null), Times.Once);
+            this.syncHelper.Verify(s => s.Release(), Times.Once);
+            jobMetadata.Verify(s => s.SetNextExecutionTime(), Times.Once);
+        }
+
+        [Theory]
+        [AutoMoqData]
         public async Task ShouldUseCorrectCallOrder(
             IIdentifier<Guid> jobId,
             IIdentifier<string> schedulerId,
@@ -241,9 +262,8 @@
             });
 
             this.job.Setup(s => s.Invoke(jobMetadata.Object.Context, cancellationTokenSource.Token))
-                .Returns<IDictionary<string, object>, CancellationToken>((ctx, token) =>
+                .Returns(() =>
                 {
-                    Assert.Same(jobMetadata.Object.Context, ctx);
                     Assert.Equal(5, ++order);
                     return Task.CompletedTask;
                 });
