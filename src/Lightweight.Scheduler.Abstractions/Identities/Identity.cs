@@ -3,7 +3,7 @@
     using System;
     using System.Collections.Generic;
 
-    public class Identity<TStorageKey> : IIdentifier<TStorageKey>, IEquatable<IIdentifier<TStorageKey>>
+    public class Identity<TStorageKey> : IIdentity<TStorageKey>, IEquatable<IIdentity<TStorageKey>>
     {
         private readonly IEqualityComparer<TStorageKey> equalityComparer;
 
@@ -20,7 +20,7 @@
 
         public TStorageKey Id { get; }
 
-        public bool Equals(IIdentifier<TStorageKey> other)
+        public bool Equals(IIdentity<TStorageKey> other)
         {
             if (ReferenceEquals(this, other))
             {
@@ -37,12 +37,17 @@
 
         public override bool Equals(object obj)
         {
-            return this.Equals(obj as IIdentifier<TStorageKey>);
+            return this.Equals(obj as IIdentity<TStorageKey>);
         }
 
         public override int GetHashCode()
         {
             return this.equalityComparer.GetHashCode(this.Id);
+        }
+
+        public override string ToString()
+        {
+            return $"{{{this.Id}}}";
         }
     }
 }

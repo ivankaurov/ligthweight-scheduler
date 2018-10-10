@@ -6,6 +6,6 @@
 
     public interface ISchedulerStateMonitor<TSchedulerKey>
     {
-        Task MonitorClusterState(IIdentifier<TSchedulerKey> ownerSchedulerId, CancellationToken cancellationToken);
+        Task MonitorClusterState(IIdentity<TSchedulerKey> ownerSchedulerId, CancellationToken cancellationToken);
     }
 }

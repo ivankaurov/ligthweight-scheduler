@@ -46,9 +46,9 @@
         [Theory]
         [AutoMoqData]
         public async Task ShouldReturnFalseOnAllThreadsBusy(
-            IIdentifier<Guid> jobId,
+            IIdentity<Guid> jobId,
             IJobMetadata jobMetadata,
-            IIdentifier<string> schedluerId,
+            IIdentity<string> schedluerId,
             CancellationToken cancellationToken)
         {
             // Arrange
@@ -65,9 +65,9 @@
         [Theory]
         [AutoMoqData]
         public async Task ShouldReturnFalseWhenJobIsCapturedBySomeonElse(
-            IIdentifier<Guid> jobId,
+            IIdentity<Guid> jobId,
             IJobMetadata jobMetadata,
-            IIdentifier<string> schedluerId,
+            IIdentity<string> schedluerId,
             CancellationToken cancellationToken)
         {
             // Arrange
@@ -85,9 +85,9 @@
         [AutoMoqData]
         public async Task ShouldRethrowExceptionOnCaptureJobFailue(
             Exception ex,
-            IIdentifier<Guid> jobId,
+            IIdentity<Guid> jobId,
             IJobMetadata jobMetadata,
-            IIdentifier<string> schedluerId,
+            IIdentity<string> schedluerId,
             CancellationToken cancellationToken)
         {
             // Arrange
@@ -108,8 +108,8 @@
         [AutoMoqInlineData(100)]
         public async Task ShouldUseParentCancellationToken(
            int? localTimeout,
-           IIdentifier<Guid> jobId,
-           IIdentifier<string> schedluerId,
+           IIdentity<Guid> jobId,
+           IIdentity<string> schedluerId,
            Mock<IJobMetadata> jobMetadata,
            CancellationTokenSource cancellationTokenSource)
         {
@@ -133,8 +133,8 @@
         [Theory]
         [AutoMoqData]
         public async Task ShouldObserveLocalTimeoutAndRecheduleAsUsual(
-           IIdentifier<Guid> jobId,
-           IIdentifier<string> schedluerId,
+           IIdentity<Guid> jobId,
+           IIdentity<string> schedluerId,
            Mock<IJobMetadata> jobMetadata)
         {
             // Arrange
@@ -161,8 +161,8 @@
         [Theory]
         [AutoMoqData]
         public async Task ShouldRescheduleFailedJobAsUsual(
-          IIdentifier<Guid> jobId,
-          IIdentifier<string> schedluerId,
+          IIdentity<Guid> jobId,
+          IIdentity<string> schedluerId,
           Mock<IJobMetadata> jobMetadata,
           Exception ex)
         {
@@ -185,8 +185,8 @@
         [AutoMoqInlineData(typeof(Exception))]
         public async Task ShouldExecuteSimpleJobAndSwallowClearJobOwnerFailures(
           Type clearJobOwnerFailureException,
-          IIdentifier<Guid> jobId,
-          IIdentifier<string> schedluerId,
+          IIdentity<Guid> jobId,
+          IIdentity<string> schedluerId,
           Mock<IJobMetadata> jobMetadata)
         {
             // Arrange
@@ -210,8 +210,8 @@
         [AutoMoqData]
         public async Task ShouldExecuteSimpleJobAndSwallowCalculateNextTimeException(
          Exception ex,
-         IIdentifier<Guid> jobId,
-         IIdentifier<string> schedluerId,
+         IIdentity<Guid> jobId,
+         IIdentity<string> schedluerId,
          Mock<IJobMetadata> jobMetadata)
         {
             // Arrange
@@ -230,8 +230,8 @@
         [Theory]
         [AutoMoqData]
         public async Task ShouldUseCorrectCallOrder(
-            IIdentifier<Guid> jobId,
-            IIdentifier<string> schedulerId,
+            IIdentity<Guid> jobId,
+            IIdentity<string> schedulerId,
             Mock<IJobMetadata> jobMetadata,
             Mock<IDisposable> scope)
         {

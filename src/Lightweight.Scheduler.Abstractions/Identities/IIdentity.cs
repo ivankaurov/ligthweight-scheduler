@@ -1,6 +1,6 @@
 ﻿namespace Lightweight.Scheduler.Abstractions.Identities
 {
-    public interface IIdentifier<out TStorageId>
+    public interface IIdentity<out TStorageId>
     {
         TStorageId Id { get; }
     }

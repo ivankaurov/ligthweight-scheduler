@@ -7,10 +7,10 @@
 
     public interface ISchedulerMetadataStore<TStorageId>
     {
-        Task Heartbeat(IIdentifier<TStorageId> schedulerId);
+        Task Heartbeat(IIdentity<TStorageId> schedulerId);
 
-        Task<ICollection<(IIdentifier<TStorageId> id, ISchedulerMetadata metadata)>> GetSchedulers();
+        Task<ICollection<(IIdentity<TStorageId> id, ISchedulerMetadata metadata)>> GetSchedulers();
 
-        Task RemoveScheduler(IIdentifier<TStorageId> schedulerId);
+        Task RemoveScheduler(IIdentity<TStorageId> schedulerId);
     }
 }

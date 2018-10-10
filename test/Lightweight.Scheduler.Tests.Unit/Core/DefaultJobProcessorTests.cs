@@ -30,13 +30,13 @@
 
         [Theory]
         [AutoMoqData]
-        public async Task ShouldReturnImmediatelyOnLongJobsProcessingAndExecuteAllJobs((IIdentifier<Guid> id, IJobMetadata metadata)[] jobs, IIdentifier<string> schedulerId)
+        public async Task ShouldReturnImmediatelyOnLongJobsProcessingAndExecuteAllJobs((IIdentity<Guid> id, IJobMetadata metadata)[] jobs, IIdentity<string> schedulerId)
         {
             // Arrange
             var jobsExecuted = 0;
             this.jobStore.Setup(s => s.GetJobsForExecution()).ReturnsAsync(jobs);
             this.singleJobProcessor.Setup(s => s.ProcessSingleJob(
-                It.IsAny<IIdentifier<Guid>>(),
+                It.IsAny<IIdentity<Guid>>(),
                 It.IsAny<IJobMetadata>(),
                 schedulerId,
                 CancellationToken.None)).Returns(() =>
@@ -63,17 +63,17 @@
 
         [Theory]
         [AutoMoqData]
-        public async Task ShouldHandleOperationCanceledException((IIdentifier<Guid> id, IJobMetadata metadata) job, IIdentifier<string> schedulerId)
+        public async Task ShouldHandleOperationCanceledException((IIdentity<Guid> id, IJobMetadata metadata) job, IIdentity<string> schedulerId)
         {
             // Arrange
             var exceptionThrown = false;
-            var cts = new CancellationTokenSource(200);
+            var cts = new CancellationTokenSource(300);
             this.jobStore.Setup(s => s.GetJobsForExecution()).ReturnsAsync(new[] { job });
             this.singleJobProcessor.Setup(s => s.ProcessSingleJob(
                 job.id,
                 job.metadata,
                 schedulerId,
-                cts.Token)).Returns(async (IIdentifier<Guid> jobId, IJobMetadata metadata, IIdentifier<string> sced, CancellationToken token) =>
+                cts.Token)).Returns(async (IIdentity<Guid> jobId, IJobMetadata metadata, IIdentity<string> sced, CancellationToken token) =>
                 {
                     try
                     {
@@ -98,12 +98,12 @@
             // Assert
             Assert.True(callTime.TotalMilliseconds < 100);
             Assert.True(executionTime.TotalMilliseconds >= 200);
-            Assert.True(executionTime.TotalMilliseconds < 300);
+            Assert.True(executionTime.TotalMilliseconds < 400);
         }
 
         [Theory]
         [AutoMoqData]
-        public async Task ShouldHandleJobExecutionException(Exception ex, (IIdentifier<Guid> id, IJobMetadata metadata) job, IIdentifier<string> schedulerId)
+        public async Task ShouldHandleJobExecutionException(Exception ex, (IIdentity<Guid> id, IJobMetadata metadata) job, IIdentity<string> schedulerId)
         {
             // Arrange
             var exceptionThrown = false;
