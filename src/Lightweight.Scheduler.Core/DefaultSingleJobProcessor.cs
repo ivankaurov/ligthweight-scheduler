@@ -128,8 +128,15 @@
                 this.logger.LogError(ex, "Job execution failed. Job will be rescheduled as usual. Failure Message: {0}", ex.Message);
             }
 
-            jobMetadata.SetNextExecutionTime();
-            this.logger.LogTrace("Next execution time updated");
+            try
+            {
+                jobMetadata.SetNextExecutionTime();
+                this.logger.LogTrace("Next execution time updated");
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Calculation of next execution time failed: {0}. Job will be rescheduled immediately", ex.Message);
+            }
         }
 
         private async Task ExecuteJobInternal(IJobMetadata jobMetadata, CancellationToken cancellationToken)
@@ -157,7 +164,7 @@
             }
             catch (ConcurrencyException ex)
             {
-                this.logger.LogError(ex, "Clearing job {0} state unexpectedly failed with concurrency exception: {1}", jobId, ex.Message);
+                this.logger.LogWarning(ex, "Somebody has already updated job {0}: {1}", jobId, ex.Message);
             }
             catch (Exception ex)
             {
