@@ -6,11 +6,11 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Lightweight.Scheduler.Abstractions;
-    using Lightweight.Scheduler.Abstractions.Identities;
     using Microsoft.Extensions.Logging;
 
-    internal sealed class DefaultScheduler<TStorageKey> : Identity<TStorageKey>, IScheduler, ISchedulerMetadata, IDisposable
+    internal sealed class DefaultScheduler<TStorageKey> : IScheduler, ISchedulerMetadata, IDisposable
     {
+        private readonly TStorageKey schedulerId;
         private readonly ISchedulerMetadata metadata;
         private readonly ISchedulerMetadataStore<TStorageKey> schedulerMetadataStore;
         private readonly ISchedulerStateMonitor<TStorageKey> schedulerStateMonitor;
@@ -30,8 +30,8 @@
             ISchedulerStateMonitor<TStorageKey> schedulerStateMonitor,
             IJobProcessor<TStorageKey> jobProcessor,
             ILogger<DefaultScheduler<TStorageKey>> logger)
-            : base(schedulerId)
         {
+            this.schedulerId = schedulerId;
             this.metadata = schedulerMetadata;
             this.schedulerMetadataStore = schedulerMetadataStore;
             this.schedulerStateMonitor = schedulerStateMonitor;
@@ -89,7 +89,7 @@
         {
             if (this.objectDisposed)
             {
-                throw new ObjectDisposedException($"{this.GetType().Name} {{{this.Id}}}");
+                throw new ObjectDisposedException($"{this.GetType().Name} {{{this.schedulerId}}}");
             }
         }
 
@@ -117,17 +117,17 @@
 
         private Task DoHeartbeat()
         {
-            return this.DoChildAction(() => this.schedulerMetadataStore.Heartbeat(this));
+            return this.DoChildAction(() => this.schedulerMetadataStore.Heartbeat(this.schedulerId));
         }
 
         private Task DoClusterMonitoring()
         {
-            return this.DoChildAction(() => this.schedulerStateMonitor.MonitorClusterState(this, this.cancellationTokenSource.Token));
+            return this.DoChildAction(() => this.schedulerStateMonitor.MonitorClusterState(this.schedulerId, this.cancellationTokenSource.Token));
         }
 
         private Task ProcessJobs()
         {
-            return this.DoChildAction(() => this.jobProcessor.ProcessJobs(this, this.cancellationTokenSource.Token));
+            return this.DoChildAction(() => this.jobProcessor.ProcessJobs(this.schedulerId, this.cancellationTokenSource.Token));
         }
 
         private async Task DoChildAction(Func<Task> action, [CallerMemberName] string callerMemberName = null)

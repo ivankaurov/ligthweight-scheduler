@@ -6,7 +6,6 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Lightweight.Scheduler.Abstractions;
-    using Lightweight.Scheduler.Abstractions.Identities;
     using Lightweight.Scheduler.Core;
     using Lightweight.Scheduler.Tests.Unit.Utils;
     using Microsoft.Extensions.Logging;
@@ -30,20 +29,20 @@
 
         [Theory]
         [AutoMoqData]
-        public async Task ShouldReturnImmediatelyOnLongJobsProcessingAndExecuteAllJobs((IIdentity<Guid> id, IJobMetadata metadata)[] jobs, IIdentity<string> schedulerId)
+        public async Task ShouldReturnImmediatelyOnLongJobsProcessingAndExecuteAllJobs((Guid id, IJobMetadata metadata)[] jobs, string schedulerId)
         {
             // Arrange
             var jobsExecuted = 0;
             this.jobStore.Setup(s => s.GetJobsForExecution()).ReturnsAsync(jobs);
             this.singleJobProcessor.Setup(s => s.ProcessSingleJob(
-                It.IsAny<IIdentity<Guid>>(),
+                It.IsAny<Guid>(),
                 It.IsAny<IJobMetadata>(),
                 schedulerId,
                 CancellationToken.None)).Returns(() =>
                 {
                     Thread.Sleep(1000);
                     Interlocked.Increment(ref jobsExecuted);
-                    return Task.FromResult(true);
+                    return Task.FromResult(JobExecutionResult.Succeeded);
                 });
 
             // Act
@@ -63,7 +62,7 @@
 
         [Theory]
         [AutoMoqData]
-        public async Task ShouldHandleOperationCanceledException((IIdentity<Guid> id, IJobMetadata metadata) job, IIdentity<string> schedulerId)
+        public async Task ShouldHandleOperationCanceledException((Guid id, IJobMetadata metadata) job, string schedulerId)
         {
             // Arrange
             var exceptionThrown = false;
@@ -73,12 +72,12 @@
                 job.id,
                 job.metadata,
                 schedulerId,
-                cts.Token)).Returns(async (IIdentity<Guid> jobId, IJobMetadata metadata, IIdentity<string> sced, CancellationToken token) =>
+                cts.Token)).Returns(async (Guid jobId, IJobMetadata metadata, string sched, CancellationToken token) =>
                 {
                     try
                     {
                         await Task.Delay(1000, token);
-                        return true;
+                        return JobExecutionResult.Succeeded;
                     }
                     catch (OperationCanceledException)
                     {
@@ -103,7 +102,7 @@
 
         [Theory]
         [AutoMoqData]
-        public async Task ShouldHandleJobExecutionException(Exception ex, (IIdentity<Guid> id, IJobMetadata metadata) job, IIdentity<string> schedulerId)
+        public async Task ShouldHandleJobExecutionException(Exception ex, (Guid id, IJobMetadata metadata) job, string schedulerId)
         {
             // Arrange
             var exceptionThrown = false;

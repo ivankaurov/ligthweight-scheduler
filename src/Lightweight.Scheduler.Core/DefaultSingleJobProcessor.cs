@@ -6,7 +6,6 @@
     using System.Threading.Tasks;
     using Lightweight.Scheduler.Abstractions;
     using Lightweight.Scheduler.Abstractions.Exceptions;
-    using Lightweight.Scheduler.Abstractions.Identities;
     using Lightweight.Scheduler.Core.Internal;
     using Microsoft.Extensions.Logging;
 
@@ -29,45 +28,36 @@
             this.logger = logger;
         }
 
-        public async Task<bool> ProcessSingleJob(
-            IIdentity<TJobKey> jobId,
+        public async Task<JobExecutionResult> ProcessSingleJob(
+            TJobKey jobId,
             IJobMetadata jobMetadata,
-            IIdentity<TSchedulerKey> schedluerId,
+            TSchedulerKey schedluerId,
             CancellationToken cancellationToken)
         {
             if (!await this.TryCaptureExecutionThread(cancellationToken).ConfigureAwait(false))
             {
-                return false;
+                return JobExecutionResult.NotStarted;
             }
 
             try
             {
                 if (!await this.TrySetJobOwner(jobId, schedluerId).ConfigureAwait(false))
                 {
-                    return false;
+                    return JobExecutionResult.NotStarted;
                 }
 
+                JobExecutionResult result = JobExecutionResult.Failed;
                 try
                 {
                     this.logger.LogInformation("Starting job {0} execution at scheduler {1}", jobId, schedluerId);
-                    await this.ExecuteJob(jobMetadata, cancellationToken).ConfigureAwait(false);
-                    this.logger.LogInformation("Job {0} execution completed", jobId);
-                    return true;
-                }
-                catch
-                {
-                    // TODO - remove in release - added for debugging
-                    throw;
+                    result = await this.ExecuteJob(jobMetadata, cancellationToken).ConfigureAwait(false);
+                    this.logger.LogInformation("Job {0} execution completed: {1}", jobId, result);
+                    return result;
                 }
                 finally
                 {
-                    await this.ClearJobOwner(jobId, jobMetadata).ConfigureAwait(false);
+                    await this.SetJobExecutionResult(jobId, jobMetadata, result).ConfigureAwait(false);
                 }
-            }
-            catch
-            {
-                // TODO: Remove in release - added for debugging
-                throw;
             }
             finally
             {
@@ -86,7 +76,7 @@
             return result;
         }
 
-        private async Task<bool> TrySetJobOwner(IIdentity<TJobKey> jobId, IIdentity<TSchedulerKey> schedulerId)
+        private async Task<bool> TrySetJobOwner(TJobKey jobId, TSchedulerKey schedulerId)
         {
             try
             {
@@ -100,27 +90,31 @@
             }
         }
 
-        private async Task ExecuteJob(IJobMetadata jobMetadata, CancellationToken cancellationToken)
+        private async Task<JobExecutionResult> ExecuteJob(IJobMetadata jobMetadata, CancellationToken cancellationToken)
         {
+            JobExecutionResult result;
+
             try
             {
                 if (jobMetadata.Timeout > TimeSpan.Zero && jobMetadata.Timeout != Timeout.InfiniteTimeSpan)
                 {
-                    await this.ExecuteJobWithTimeout(jobMetadata, jobMetadata.Timeout.Value, cancellationToken).ConfigureAwait(false);
+                    result = await this.ExecuteJobWithTimeout(jobMetadata, jobMetadata.Timeout.Value, cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
                     await this.ExecuteJobInternal(jobMetadata, cancellationToken).ConfigureAwait(false);
+                    result = JobExecutionResult.Succeeded;
                 }
             }
             catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
             {
                 this.logger.LogWarning(ex, "Job execution was interrupted by external cancellation. Job will be rescheduled immediately");
-                throw;
+                return JobExecutionResult.Cancelled;
             }
             catch (Exception ex)
             {
                 this.logger.LogError(ex, "Job execution failed. Job will be rescheduled as usual. Failure Message: {0}", ex.Message);
+                result = JobExecutionResult.Failed;
             }
 
             try
@@ -132,9 +126,11 @@
             {
                 this.logger.LogError(ex, "Calculation of next execution time failed: {0}. Job will be rescheduled immediately", ex.Message);
             }
+
+            return result;
         }
 
-        private async Task ExecuteJobWithTimeout(IJobMetadata jobMetadata, TimeSpan timeout, CancellationToken cancellationToken)
+        private async Task<JobExecutionResult> ExecuteJobWithTimeout(IJobMetadata jobMetadata, TimeSpan timeout, CancellationToken cancellationToken)
         {
             using (var timeoutCts = new CancellationTokenSource(timeout))
             {
@@ -143,10 +139,12 @@
                     try
                     {
                         await this.ExecuteJobInternal(jobMetadata, linkedCts.Token).ConfigureAwait(false);
+                        return JobExecutionResult.Succeeded;
                     }
                     catch (OperationCanceledException ex) when (timeoutCts.IsCancellationRequested)
                     {
                         this.logger.LogWarning(ex, "Job execution cancelled due timeout {0}: [1}. Job will be rescheduled as usual", timeout, ex.Message);
+                        return JobExecutionResult.Timeouted;
                     }
                 }
             }
@@ -168,11 +166,11 @@
             }
         }
 
-        private async Task ClearJobOwner(IIdentity<TJobKey> jobId, IJobMetadata jobMetadata)
+        private async Task SetJobExecutionResult(TJobKey jobId, IJobMetadata jobMetadata, JobExecutionResult jobExecutionResult)
         {
             try
             {
-                await this.jobStore.UpdateJob(jobId, jobMetadata, null).ConfigureAwait(false);
+                await this.jobStore.FinalizeJob(jobId, jobMetadata, jobExecutionResult).ConfigureAwait(false);
                 this.logger.LogTrace("Job {0} state cleared", jobId);
             }
             catch (ConcurrencyException ex)
