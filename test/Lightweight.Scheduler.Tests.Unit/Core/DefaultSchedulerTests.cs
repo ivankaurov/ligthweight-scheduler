@@ -75,30 +75,43 @@
         {
             // Arrange
             var order = 0;
+            this.schedulerMetadataStore.Setup(s => s.AddScheduler(this.schedulerId, this.schedulerMetadata.Object))
+                .Returns(() =>
+                {
+                    Assert.Equal(1, ++order);
+                    return Task.CompletedTask;
+                });
+
             this.schedulerMetadataStore.Setup(s => s.Heartbeat(this.schedulerId)).Returns(() =>
             {
-                Assert.Equal(1, ++order);
+                Assert.Equal(2, ++order);
                 return Task.CompletedTask;
             });
 
             this.schedulerStateMonitor.Setup(s => s.MonitorClusterState(this.schedulerId, It.IsAny<CancellationToken>()))
                 .Returns(() =>
                 {
-                    Assert.Equal(2, ++order);
+                    Assert.Equal(3, ++order);
                     return Task.CompletedTask;
                 });
 
             this.jobProcessor.Setup(s => s.ProcessJobs(this.schedulerId, It.IsAny<CancellationToken>()))
+                .Returns(async () =>
+                {
+                    Assert.Equal(4, ++order);
+                    await this.sut.Stop();
+                });
+
+            this.schedulerMetadataStore.Setup(s => s.RemoveScheduler(this.schedulerId))
                 .Returns(() =>
                 {
-                    Assert.Equal(3, ++order);
-                    this.sut.Stop();
+                    Assert.Equal(5, ++order);
                     return Task.CompletedTask;
                 });
 
             // Act
             await this.sut.Start();
-            await WaitHelper.WaitForAction(() => order == 3);
+            await WaitHelper.WaitForAction(() => order == 5);
 
             // Assert
             await Assert.ThrowsAsync<InvalidOperationException>(() => this.sut.Stop());
@@ -121,6 +134,80 @@
             this.schedulerStateMonitor.Verify(s => s.MonitorClusterState(this.schedulerId, It.IsAny<CancellationToken>()), Times.AtLeast(2));
             this.jobProcessor.Verify(s => s.ProcessJobs(this.schedulerId, It.IsAny<CancellationToken>()), Times.AtLeast(2));
             this.schedulerMetadataStore.VerifyAll();
+        }
+
+        [Theory]
+        [AutoMoqInlineData(typeof(Exception))]
+        [AutoMoqInlineData(typeof(OperationCanceledException))]
+        public async Task ShouldHandleClusterMonitorException(Type exceptionType)
+        {
+            // Arrange
+            var ex = (Exception)Activator.CreateInstance(exceptionType);
+            this.schedulerStateMonitor.Setup(s => s.MonitorClusterState(this.schedulerId, It.IsAny<CancellationToken>())).ThrowsAsync(ex);
+
+            // Act
+            await this.sut.Start();
+            await Task.Delay(400);
+
+            // Assert
+            this.schedulerMetadataStore.Verify(s => s.Heartbeat(this.schedulerId), Times.AtLeast(2));
+            this.jobProcessor.Verify(s => s.ProcessJobs(this.schedulerId, It.IsAny<CancellationToken>()), Times.AtLeast(2));
+            this.schedulerStateMonitor.VerifyAll();
+        }
+
+        [Theory]
+        [AutoMoqInlineData(typeof(OperationCanceledException))]
+        [AutoMoqInlineData(typeof(Exception))]
+        public async Task ShouldHandleJobProcessingException(Type exceptionType)
+        {
+            // Arrange
+            var ex = (Exception)Activator.CreateInstance(exceptionType);
+            this.jobProcessor.Setup(s => s.ProcessJobs(this.schedulerId, It.IsAny<CancellationToken>())).ThrowsAsync(ex);
+
+            // Act
+            await this.sut.Start();
+            await Task.Delay(400);
+
+            // Assert
+            this.schedulerMetadataStore.Verify(s => s.Heartbeat(this.schedulerId), Times.AtLeast(2));
+            this.schedulerStateMonitor.Verify(s => s.MonitorClusterState(this.schedulerId, It.IsAny<CancellationToken>()), Times.AtLeast(2));
+            this.jobProcessor.VerifyAll();
+        }
+
+        [Fact]
+        public async Task ShouldHandleSchedulerStop()
+        {
+            // Arrange
+            var jobProcessorCalled = false;
+            var schedulerStopped = false;
+            var heartbeatCalledOnStoppedScheduler = false;
+
+            this.jobProcessor.Setup(s => s.ProcessJobs(this.schedulerId, It.IsAny<CancellationToken>()))
+            .Returns(async (Guid _, CancellationToken ct) =>
+            {
+                jobProcessorCalled = true;
+                await Task.Delay(1000, ct);
+            });
+
+            this.schedulerMetadataStore.Setup(s => s.Heartbeat(this.schedulerId)).Returns(() =>
+            {
+                if (schedulerStopped)
+                {
+                    heartbeatCalledOnStoppedScheduler = true;
+                }
+
+                return Task.CompletedTask;
+            });
+
+            // Act
+            await this.sut.Start();
+            await WaitHelper.WaitForAction(() => jobProcessorCalled);
+            await this.sut.Stop();
+            schedulerStopped = true;
+
+            // Assert
+            await Task.Delay(200);
+            Assert.False(heartbeatCalledOnStoppedScheduler);
         }
     }
 }
