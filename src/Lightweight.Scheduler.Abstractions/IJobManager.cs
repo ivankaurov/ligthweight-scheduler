@@ -1,6 +1,7 @@
 ﻿namespace Lightweight.Scheduler.Abstractions
 {
     using System.Threading.Tasks;
+    using Lightweight.Scheduler.Abstractions.Identities;
 
     public interface IJobManager<TJobKey>
     {

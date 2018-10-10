@@ -6,6 +6,7 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Lightweight.Scheduler.Abstractions;
+    using Lightweight.Scheduler.Abstractions.Identities;
     using Lightweight.Scheduler.Core;
     using Lightweight.Scheduler.Tests.Unit.Utils;
     using Microsoft.Extensions.Logging;

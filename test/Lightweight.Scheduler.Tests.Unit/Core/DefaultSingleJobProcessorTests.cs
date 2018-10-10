@@ -7,6 +7,7 @@
     using System.Threading.Tasks;
     using Lightweight.Scheduler.Abstractions;
     using Lightweight.Scheduler.Abstractions.Exceptions;
+    using Lightweight.Scheduler.Abstractions.Identities;
     using Lightweight.Scheduler.Core;
     using Lightweight.Scheduler.Core.Internal;
     using Lightweight.Scheduler.Tests.Unit.Utils;

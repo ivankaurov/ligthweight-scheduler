@@ -6,6 +6,7 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Lightweight.Scheduler.Abstractions;
+    using Lightweight.Scheduler.Abstractions.Identities;
     using Microsoft.Extensions.Logging;
 
     internal sealed class DefaultScheduler<TStorageKey> : IScheduler, ISchedulerMetadata, IIdentifier<TStorageKey>, IDisposable
@@ -84,6 +85,11 @@
                 this.cancellationTokenSource.Dispose();
                 this.objectDisposed = true;
             }
+        }
+
+        public override string ToString()
+        {
+            return $"{{{this.Id}}}";
         }
 
         private void CheckIfDisposed()

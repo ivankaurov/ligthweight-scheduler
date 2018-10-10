@@ -2,6 +2,7 @@
 {
     using System.Collections.Generic;
     using System.Threading.Tasks;
+    using Lightweight.Scheduler.Abstractions.Identities;
 
     public interface IJobStore<TJobKey, TSchedulerKey>
     {

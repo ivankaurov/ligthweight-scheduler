@@ -5,6 +5,7 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Lightweight.Scheduler.Abstractions;
+    using Lightweight.Scheduler.Abstractions.Identities;
     using Microsoft.Extensions.Logging;
 
     internal sealed class DefaultJobProcessor<TSchedulerKey, TJobKey> : IJobProcessor<TSchedulerKey>
