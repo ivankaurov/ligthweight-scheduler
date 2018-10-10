@@ -24,6 +24,8 @@
         public DefaultClusterStateMonitorTests()
         {
             this.dateTimeProvider.Setup(s => s.Now()).Returns(DateTimeOffset.UtcNow);
+            this.SetupSchedulersMocks();
+            this.jobStore.Setup(s => s.GetTimeoutedJobs()).ReturnsAsync(Array.Empty<(Guid, IJobMetadata)>());
 
             this.sut = new DefaultClusterStateMonitor<string, Guid>(
                 this.schedulerMetadataStore.Object,

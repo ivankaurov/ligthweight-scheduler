@@ -161,6 +161,7 @@
             catch (Exception ex)
             {
                 this.logger.LogError(ex, "{0} failed in {1}: {2}", callerMemberName, sw.Elapsed, ex.Message);
+                throw;
             }
         }
     }
