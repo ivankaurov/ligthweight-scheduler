@@ -66,7 +66,7 @@
         {
             // Arrange
             var exceptionThrown = false;
-            var cts = new CancellationTokenSource(300);
+            var cts = new CancellationTokenSource(500);
             this.jobStore.Setup(s => s.GetJobsForExecution()).ReturnsAsync(new[] { job });
             this.singleJobProcessor.Setup(s => s.ProcessSingleJob(
                 job.id,
@@ -76,7 +76,7 @@
                 {
                     try
                     {
-                        await Task.Delay(1000, token);
+                        await Task.Delay(10000, token);
                         return JobExecutionResult.Succeeded;
                     }
                     catch (OperationCanceledException)
@@ -97,7 +97,7 @@
             // Assert
             Assert.True(callTime.TotalMilliseconds < 100);
             Assert.True(executionTime.TotalMilliseconds >= 200);
-            Assert.True(executionTime.TotalMilliseconds < 400);
+            Assert.True(executionTime.TotalMilliseconds < 10000);
         }
 
         [Theory]
