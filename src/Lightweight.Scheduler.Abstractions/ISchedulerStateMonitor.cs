@@ -2,10 +2,9 @@
 {
     using System.Threading;
     using System.Threading.Tasks;
-    using Lightweight.Scheduler.Abstractions.Identities;
 
     public interface ISchedulerStateMonitor<TSchedulerKey>
     {
-        Task MonitorClusterState(IIdentity<TSchedulerKey> ownerSchedulerId, CancellationToken cancellationToken);
+        Task MonitorClusterState(TSchedulerKey ownerSchedulerId, CancellationToken cancellationToken);
     }
 }

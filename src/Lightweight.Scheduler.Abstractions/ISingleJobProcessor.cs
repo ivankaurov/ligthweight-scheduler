@@ -2,14 +2,13 @@
 {
     using System.Threading;
     using System.Threading.Tasks;
-    using Lightweight.Scheduler.Abstractions.Identities;
 
     public interface ISingleJobProcessor<TSchedulerKey, TJobKey>
     {
-        Task<bool> ProcessSingleJob(
-            IIdentity<TJobKey> jobId,
+        Task<JobExecutionResult> ProcessSingleJob(
+            TJobKey jobId,
             IJobMetadata jobMetadata,
-            IIdentity<TSchedulerKey> schedluerId,
+            TSchedulerKey schedluerId,
             CancellationToken cancellationToken);
     }
 }

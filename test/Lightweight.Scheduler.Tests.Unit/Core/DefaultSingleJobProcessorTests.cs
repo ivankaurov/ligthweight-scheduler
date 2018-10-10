@@ -7,7 +7,6 @@
     using System.Threading.Tasks;
     using Lightweight.Scheduler.Abstractions;
     using Lightweight.Scheduler.Abstractions.Exceptions;
-    using Lightweight.Scheduler.Abstractions.Identities;
     using Lightweight.Scheduler.Core;
     using Lightweight.Scheduler.Core.Internal;
     using Lightweight.Scheduler.Tests.Unit.Utils;
@@ -46,9 +45,9 @@
         [Theory]
         [AutoMoqData]
         public async Task ShouldReturnFalseOnAllThreadsBusy(
-            IIdentity<Guid> jobId,
+            Guid jobId,
             IJobMetadata jobMetadata,
-            IIdentity<string> schedluerId,
+            string schedluerId,
             CancellationToken cancellationToken)
         {
             // Arrange
@@ -58,16 +57,16 @@
             var result = await this.sut.ProcessSingleJob(jobId, jobMetadata, schedluerId, cancellationToken);
 
             // Assert
-            Assert.False(result);
+            Assert.Equal(JobExecutionResult.NotStarted, result);
             this.syncHelper.Verify(s => s.Release(), Times.Never);
         }
 
         [Theory]
         [AutoMoqData]
         public async Task ShouldReturnFalseWhenJobIsCapturedBySomeonElse(
-            IIdentity<Guid> jobId,
+            Guid jobId,
             IJobMetadata jobMetadata,
-            IIdentity<string> schedluerId,
+            string schedluerId,
             CancellationToken cancellationToken)
         {
             // Arrange
@@ -77,7 +76,7 @@
             var result = await this.sut.ProcessSingleJob(jobId, jobMetadata, schedluerId, cancellationToken);
 
             // Assert
-            Assert.False(result);
+            Assert.Equal(JobExecutionResult.NotStarted, result);
             this.syncHelper.Verify(s => s.Release(), Times.Once);
         }
 
@@ -85,9 +84,9 @@
         [AutoMoqData]
         public async Task ShouldRethrowExceptionOnCaptureJobFailue(
             Exception ex,
-            IIdentity<Guid> jobId,
+            Guid jobId,
             IJobMetadata jobMetadata,
-            IIdentity<string> schedluerId,
+            string schedluerId,
             CancellationToken cancellationToken)
         {
             // Arrange
@@ -108,8 +107,8 @@
         [AutoMoqInlineData(100)]
         public async Task ShouldUseParentCancellationToken(
            int? localTimeout,
-           IIdentity<Guid> jobId,
-           IIdentity<string> schedluerId,
+           Guid jobId,
+           string schedluerId,
            Mock<IJobMetadata> jobMetadata,
            CancellationTokenSource cancellationTokenSource)
         {
@@ -122,10 +121,11 @@
             });
 
             // Act
-            await Assert.ThrowsAsync<OperationCanceledException>(() => this.sut.ProcessSingleJob(jobId, jobMetadata.Object, schedluerId, cancellationTokenSource.Token));
+            var result = await this.sut.ProcessSingleJob(jobId, jobMetadata.Object, schedluerId, cancellationTokenSource.Token);
 
             // Assert
-            this.jobStore.Verify(s => s.UpdateJob(jobId, jobMetadata.Object, null), Times.Once);
+            Assert.Equal(JobExecutionResult.Cancelled, result);
+            this.jobStore.Verify(s => s.FinalizeJob(jobId, jobMetadata.Object, JobExecutionResult.Cancelled), Times.Once);
             this.syncHelper.Verify(s => s.Release(), Times.Once);
             jobMetadata.Verify(s => s.SetNextExecutionTime(), Times.Never);
         }
@@ -133,8 +133,8 @@
         [Theory]
         [AutoMoqData]
         public async Task ShouldObserveLocalTimeoutAndRecheduleAsUsual(
-           IIdentity<Guid> jobId,
-           IIdentity<string> schedluerId,
+           Guid jobId,
+           string schedluerId,
            Mock<IJobMetadata> jobMetadata)
         {
             // Arrange
@@ -151,9 +151,9 @@
             sw.Stop();
 
             // Assert
-            Assert.True(result);
+            Assert.Equal(JobExecutionResult.Timeouted, result);
             Assert.True(sw.Elapsed.TotalMilliseconds < 500);
-            this.jobStore.Verify(s => s.UpdateJob(jobId, jobMetadata.Object, null), Times.Once);
+            this.jobStore.Verify(s => s.FinalizeJob(jobId, jobMetadata.Object, JobExecutionResult.Timeouted), Times.Once);
             this.syncHelper.Verify(s => s.Release(), Times.Once);
             jobMetadata.Verify(s => s.SetNextExecutionTime(), Times.Once);
         }
@@ -161,8 +161,8 @@
         [Theory]
         [AutoMoqData]
         public async Task ShouldRescheduleFailedJobAsUsual(
-          IIdentity<Guid> jobId,
-          IIdentity<string> schedluerId,
+          Guid jobId,
+          string schedluerId,
           Mock<IJobMetadata> jobMetadata,
           Exception ex)
         {
@@ -173,35 +173,34 @@
             var result = await this.sut.ProcessSingleJob(jobId, jobMetadata.Object, schedluerId, CancellationToken.None);
 
             // Assert
-            Assert.True(result);
-            this.jobStore.Verify(s => s.UpdateJob(jobId, jobMetadata.Object, null), Times.Once);
+            Assert.Equal(JobExecutionResult.Failed, result);
+            this.jobStore.Verify(s => s.FinalizeJob(jobId, jobMetadata.Object, JobExecutionResult.Failed), Times.Once);
             this.syncHelper.Verify(s => s.Release(), Times.Once);
             jobMetadata.Verify(s => s.SetNextExecutionTime(), Times.Once);
         }
 
         [Theory]
-        [AutoMoqInlineData(null)]
         [AutoMoqInlineData(typeof(ConcurrencyException))]
         [AutoMoqInlineData(typeof(Exception))]
-        public async Task ShouldExecuteSimpleJobAndSwallowClearJobOwnerFailures(
+        public async Task ShouldExecuteSimpleJobAndSwallowFinalizeJobFailures(
           Type clearJobOwnerFailureException,
-          IIdentity<Guid> jobId,
-          IIdentity<string> schedluerId,
+          Guid jobId,
+          string schedluerId,
           Mock<IJobMetadata> jobMetadata)
         {
             // Arrange
             if (clearJobOwnerFailureException != null)
             {
                 var ex = (Exception)Activator.CreateInstance(clearJobOwnerFailureException);
-                this.jobStore.Setup(s => s.UpdateJob(jobId, jobMetadata.Object, null)).ThrowsAsync(ex);
+                this.jobStore.Setup(s => s.FinalizeJob(jobId, jobMetadata.Object, It.IsAny<JobExecutionResult>())).ThrowsAsync(ex);
             }
 
             // Act
             var result = await this.sut.ProcessSingleJob(jobId, jobMetadata.Object, schedluerId, CancellationToken.None);
 
             // Assert
-            Assert.True(result);
-            this.jobStore.Verify(s => s.UpdateJob(jobId, jobMetadata.Object, null), Times.Once);
+            Assert.Equal(JobExecutionResult.Succeeded, result);
+            this.jobStore.Verify(s => s.FinalizeJob(jobId, jobMetadata.Object, JobExecutionResult.Succeeded), Times.Once);
             this.syncHelper.Verify(s => s.Release(), Times.Once);
             jobMetadata.Verify(s => s.SetNextExecutionTime(), Times.Once);
         }
@@ -210,8 +209,8 @@
         [AutoMoqData]
         public async Task ShouldExecuteSimpleJobAndSwallowCalculateNextTimeException(
          Exception ex,
-         IIdentity<Guid> jobId,
-         IIdentity<string> schedluerId,
+         Guid jobId,
+         string schedluerId,
          Mock<IJobMetadata> jobMetadata)
         {
             // Arrange
@@ -221,21 +220,24 @@
             var result = await this.sut.ProcessSingleJob(jobId, jobMetadata.Object, schedluerId, CancellationToken.None);
 
             // Assert
-            Assert.True(result);
-            this.jobStore.Verify(s => s.UpdateJob(jobId, jobMetadata.Object, null), Times.Once);
+            Assert.Equal(JobExecutionResult.Succeeded, result);
+            this.jobStore.Verify(s => s.FinalizeJob(jobId, jobMetadata.Object, JobExecutionResult.Succeeded), Times.Once);
             this.syncHelper.Verify(s => s.Release(), Times.Once);
             jobMetadata.Verify(s => s.SetNextExecutionTime(), Times.Once);
         }
 
         [Theory]
-        [AutoMoqData]
+        [AutoMoqInlineData(-1)]
+        [AutoMoqInlineData(10000)]
         public async Task ShouldUseCorrectCallOrder(
-            IIdentity<Guid> jobId,
-            IIdentity<string> schedulerId,
+            int jobTimeout,
+            Guid jobId,
+            string schedulerId,
             Mock<IJobMetadata> jobMetadata,
             Mock<IDisposable> scope)
         {
             // Arrange
+            jobMetadata.Setup(s => s.Timeout).Returns(TimeSpan.FromMilliseconds(jobTimeout));
             var cancellationTokenSource = new CancellationTokenSource();
             var order = 0;
             this.syncHelper.Setup(s => s.WaitOne(cancellationTokenSource.Token)).Returns(() =>
@@ -262,7 +264,7 @@
                 return this.job.Object;
             });
 
-            this.job.Setup(s => s.Invoke(jobMetadata.Object, cancellationTokenSource.Token))
+            this.job.Setup(s => s.Invoke(jobMetadata.Object, It.IsAny<CancellationToken>()))
                 .Returns(() =>
                 {
                     Assert.Equal(5, ++order);
@@ -276,7 +278,7 @@
 
             jobMetadata.Setup(s => s.SetNextExecutionTime()).Callback(() => Assert.Equal(7, ++order));
 
-            this.jobStore.Setup(s => s.UpdateJob(jobId, jobMetadata.Object, null)).Returns(() =>
+            this.jobStore.Setup(s => s.FinalizeJob(jobId, jobMetadata.Object, JobExecutionResult.Succeeded)).Returns(() =>
             {
                 Assert.Equal(8, ++order);
                 return Task.CompletedTask;
