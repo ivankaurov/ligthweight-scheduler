@@ -59,10 +59,10 @@
                 sw.Stop();
                 this.logger.LogInformation("Job {0} executed at scheduler {1} in {2}. Result: {3}", jobId, schedluerId, sw.Elapsed, res);
             }
-            catch (OperationCanceledException ex)
+            catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
             {
                 sw.Stop();
-                this.logger.LogWarning(ex, "Job {0} has been canceled at scheduler {1} after {2}", jobId, schedluerId, sw.Elapsed);
+                this.logger.LogWarning(ex, "Job {0} has been canceled due scheduler {1} cancellation after {2}", jobId, schedluerId, sw.Elapsed);
             }
             catch (Exception ex)
             {
