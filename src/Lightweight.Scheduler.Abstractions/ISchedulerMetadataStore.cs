@@ -5,6 +5,8 @@
 
     public interface ISchedulerMetadataStore<TStorageId>
     {
+        Task AddScheduler(TStorageId schedulerId, ISchedulerMetadata schedulerMetadata);
+
         Task Heartbeat(TStorageId schedulerId);
 
         Task<ICollection<(TStorageId id, ISchedulerMetadata metadata)>> GetSchedulers();

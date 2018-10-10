@@ -8,7 +8,7 @@
     using Lightweight.Scheduler.Abstractions;
     using Microsoft.Extensions.Logging;
 
-    internal sealed class DefaultScheduler<TStorageKey> : IScheduler, ISchedulerMetadata, IDisposable
+    internal sealed class DefaultScheduler<TStorageKey> : IScheduler, IDisposable
     {
         private readonly TStorageKey schedulerId;
         private readonly ISchedulerMetadata metadata;
@@ -46,10 +46,6 @@
             Stopped,
         }
 
-        public TimeSpan HeartbeatInterval => this.metadata.HeartbeatInterval;
-
-        public TimeSpan HeartbeatTimeout => this.metadata.HeartbeatTimeout;
-
         public async Task Start()
         {
             this.CheckIfDisposed();
@@ -60,10 +56,10 @@
 
             await this.InitScheduler().ConfigureAwait(false);
 
-            ThreadPool.QueueUserWorkItem(_ => this.Main().GetAwaiter().GetResult());
+            this.Main();
         }
 
-        public Task Stop()
+        public async Task Stop()
         {
             this.CheckIfDisposed();
             if (this.state != State.Running)
@@ -72,8 +68,17 @@
             }
 
             this.cancellationTokenSource.Cancel();
+            try
+            {
+                await this.schedulerMetadataStore.RemoveScheduler(this.schedulerId).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Failed to remove scheduler from store: {0}", ex.Message);
+            }
+
+            this.logger.LogInformation("Scheduler {0} stopped", this.schedulerId);
             this.state = State.Stopped;
-            return Task.CompletedTask;
         }
 
         public void Dispose()
@@ -93,25 +98,44 @@
             }
         }
 
-        private Task InitScheduler()
+        private async Task InitScheduler()
         {
-            return Task.CompletedTask;
+            try
+            {
+                await this.schedulerMetadataStore.AddScheduler(this.schedulerId, this.metadata).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Can't add scheduler {0} to store: {1}. Schduler won't start", this.schedulerId, ex.Message);
+                throw;
+            }
         }
 
-        private async Task Main()
+        private async void Main()
         {
+            await Task.Yield();
             this.state = State.Running;
+
+            this.logger.LogInformation("Scheduler {0} is running", this.schedulerId);
+
             var stopwatch = new Stopwatch();
             while (!this.cancellationTokenSource.IsCancellationRequested)
             {
-                stopwatch.Restart();
+                try
+                {
+                    stopwatch.Restart();
 
-                await this.DoHeartbeat().ConfigureAwait(false);
-                await this.DoClusterMonitoring().ConfigureAwait(false);
-                await this.ProcessJobs().ConfigureAwait(false);
+                    await this.DoHeartbeat().ConfigureAwait(false);
+                    await this.DoClusterMonitoring().ConfigureAwait(false);
+                    await this.ProcessJobs().ConfigureAwait(false);
 
-                stopwatch.Stop();
-                await this.WaitForNextIteration(stopwatch.Elapsed).ConfigureAwait(false);
+                    stopwatch.Stop();
+                    await this.WaitForNextIteration(stopwatch.Elapsed).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    this.logger.LogError(ex, "Main cycle failed: {0}", ex.Message);
+                }
             }
         }
 
@@ -136,9 +160,9 @@
             {
                 await action().ConfigureAwait(false);
             }
-            catch (OperationCanceledException ex)
+            catch (OperationCanceledException ex) when (this.cancellationTokenSource.IsCancellationRequested)
             {
-                this.logger.LogWarning(ex, "{0} is cancelled", callerMemberName);
+                this.logger.LogWarning(ex, "{0} is canceled - schduler stopped", callerMemberName);
                 throw;
             }
             catch (Exception ex)
@@ -149,9 +173,15 @@
 
         private async Task WaitForNextIteration(TimeSpan iteration)
         {
-            if (iteration < this.HeartbeatInterval)
+            if (iteration < this.metadata.HeartbeatInterval)
             {
-                await Task.Delay(this.HeartbeatInterval - iteration, this.cancellationTokenSource.Token).ConfigureAwait(false);
+                try
+                {
+                    await Task.Delay(this.metadata.HeartbeatInterval - iteration, this.cancellationTokenSource.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                }
             }
         }
     }
