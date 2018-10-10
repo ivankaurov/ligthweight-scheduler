@@ -121,16 +121,12 @@
             var stopwatch = new Stopwatch();
             while (!this.cancellationTokenSource.IsCancellationRequested)
             {
+                stopwatch.Restart();
                 try
                 {
-                    stopwatch.Restart();
-
                     await this.DoHeartbeat().ConfigureAwait(false);
                     await this.DoClusterMonitoring().ConfigureAwait(false);
                     await this.ProcessJobs().ConfigureAwait(false);
-
-                    stopwatch.Stop();
-                    await this.WaitForNextIteration(stopwatch.Elapsed).ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (this.cancellationTokenSource.IsCancellationRequested)
                 {
@@ -140,6 +136,9 @@
                 {
                     this.logger.LogError(ex, "Main cycle failed: {0}", ex.Message);
                 }
+
+                stopwatch.Stop();
+                await this.WaitForNextIteration(stopwatch.Elapsed).ConfigureAwait(false);
             }
 
             this.logger.LogInformation("Scheduler {0}: Main thread exiting", this.schedulerId);
@@ -174,6 +173,7 @@
             catch (Exception ex)
             {
                 this.logger.LogError(ex, "{0} failed: {1}", callerMemberName, ex);
+                throw;
             }
         }
 
@@ -181,7 +181,13 @@
         {
             if (iteration < this.metadata.HeartbeatInterval)
             {
-                await Task.Delay(this.metadata.HeartbeatInterval - iteration, this.cancellationTokenSource.Token).ConfigureAwait(false);
+                try
+                {
+                    await Task.Delay(this.metadata.HeartbeatInterval - iteration, this.cancellationTokenSource.Token).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                }
             }
         }
     }
