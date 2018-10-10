@@ -109,7 +109,7 @@
                 this.objectDisposed = true;
             }
 
-            public Task Invoke(IDictionary<string, object> jobContext, CancellationToken cancellationToken)
+            public Task Invoke(IJobMetadata jobMetadata, CancellationToken cancellationToken)
             {
                 if (this.objectDisposed)
                 {
