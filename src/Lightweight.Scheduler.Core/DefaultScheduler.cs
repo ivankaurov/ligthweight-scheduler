@@ -6,9 +6,10 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Lightweight.Scheduler.Abstractions;
+    using Lightweight.Scheduler.Abstractions.Identities;
     using Microsoft.Extensions.Logging;
 
-    internal sealed class DefaultScheduler<TStorageKey> : IScheduler, ISchedulerMetadata, IIdentifier<TStorageKey>, IDisposable
+    internal sealed class DefaultScheduler<TStorageKey> : Identity<TStorageKey>, IScheduler, ISchedulerMetadata, IDisposable
     {
         private readonly ISchedulerMetadata metadata;
         private readonly ISchedulerMetadataStore<TStorageKey> schedulerMetadataStore;
@@ -29,8 +30,8 @@
             ISchedulerStateMonitor<TStorageKey> schedulerStateMonitor,
             IJobProcessor<TStorageKey> jobProcessor,
             ILogger<DefaultScheduler<TStorageKey>> logger)
+            : base(schedulerId)
         {
-            this.Id = schedulerId;
             this.metadata = schedulerMetadata;
             this.schedulerMetadataStore = schedulerMetadataStore;
             this.schedulerStateMonitor = schedulerStateMonitor;
@@ -48,8 +49,6 @@
         public TimeSpan HeartbeatInterval => this.metadata.HeartbeatInterval;
 
         public TimeSpan HeartbeatTimeout => this.metadata.HeartbeatTimeout;
-
-        public TStorageKey Id { get; }
 
         public async Task Start()
         {

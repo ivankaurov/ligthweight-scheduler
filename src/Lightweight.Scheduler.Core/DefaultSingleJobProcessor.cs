@@ -6,6 +6,7 @@
     using System.Threading.Tasks;
     using Lightweight.Scheduler.Abstractions;
     using Lightweight.Scheduler.Abstractions.Exceptions;
+    using Lightweight.Scheduler.Abstractions.Identities;
     using Lightweight.Scheduler.Core.Internal;
     using Microsoft.Extensions.Logging;
 
@@ -29,9 +30,9 @@
         }
 
         public async Task<bool> ProcessSingleJob(
-            IIdentifier<TJobKey> jobId,
+            IIdentity<TJobKey> jobId,
             IJobMetadata jobMetadata,
-            IIdentifier<TSchedulerKey> schedluerId,
+            IIdentity<TSchedulerKey> schedluerId,
             CancellationToken cancellationToken)
         {
             if (!await this.TryCaptureExecutionThread(cancellationToken).ConfigureAwait(false))
@@ -85,7 +86,7 @@
             return result;
         }
 
-        private async Task<bool> TrySetJobOwner(IIdentifier<TJobKey> jobId, IIdentifier<TSchedulerKey> schedulerId)
+        private async Task<bool> TrySetJobOwner(IIdentity<TJobKey> jobId, IIdentity<TSchedulerKey> schedulerId)
         {
             try
             {
@@ -167,7 +168,7 @@
             }
         }
 
-        private async Task ClearJobOwner(IIdentifier<TJobKey> jobId, IJobMetadata jobMetadata)
+        private async Task ClearJobOwner(IIdentity<TJobKey> jobId, IJobMetadata jobMetadata)
         {
             try
             {

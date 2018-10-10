@@ -5,6 +5,7 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Lightweight.Scheduler.Abstractions;
+    using Lightweight.Scheduler.Abstractions.Identities;
     using Microsoft.Extensions.Logging;
 
     internal sealed class DefaultJobProcessor<TSchedulerKey, TJobKey> : IJobProcessor<TSchedulerKey>
@@ -23,7 +24,7 @@
             this.logger = logger;
         }
 
-        public async Task ProcessJobs(IIdentifier<TSchedulerKey> schedulerId, CancellationToken cancellationToken)
+        public async Task ProcessJobs(IIdentity<TSchedulerKey> schedulerId, CancellationToken cancellationToken)
         {
             this.logger.LogTrace("Geting jobs for scheduler {0}", schedulerId);
 
@@ -44,9 +45,9 @@
         }
 
         private async void ProcessSingleJob(
-            IIdentifier<TJobKey> jobId,
+            IIdentity<TJobKey> jobId,
             IJobMetadata jobMetadata,
-            IIdentifier<TSchedulerKey> schedluerId,
+            IIdentity<TSchedulerKey> schedluerId,
             CancellationToken cancellationToken)
         {
             var sw = Stopwatch.StartNew();
