@@ -31,18 +31,29 @@
 
         [Theory]
         [AutoMoqData]
-        public async Task VerifyCallOrder(string failedSchedulerId, Mock<ISchedulerMetadata> failedScheduler)
+        public async Task VerifyCallOrder(
+            string schedulerId,
+            string failedSchedulerId,
+            Mock<ISchedulerMetadata> failedScheduler,
+            (Guid, IJobMetadata)[] failedJobs,
+            (Guid, IJobMetadata)[] timeoutedJobs)
         {
             // Arrange
-            var order = 0;
-            this.schedulerMetadataStore.Setup(s => s.GetSchedulers()).Returns(async () =>
-            {
-                await Task.Yield();
-                Assert.Equal(1, ++order);
-                return new[] { (failedSchedulerId, failedScheduler.Object) };
-            });
+            this.schedulerMetadataStore.Setup(s => s.GetSchedulers()).ReturnsAsync(new[] { (failedSchedulerId, failedScheduler.Object) });
 
-            await Task.Yield();
+            failedScheduler.Setup(s => s.HeartbeatTimeout).Returns(TimeSpan.FromSeconds(1));
+            failedScheduler.Setup(s => s.LastCheckin).Returns(DateTime.Now.Date);
+
+            this.jobStore.Setup(s => s.GetExecutingJobs(failedSchedulerId)).ReturnsAsync(failedJobs);
+            this.jobStore.Setup(s => s.GetTimeoutedJobs()).ReturnsAsync(timeoutedJobs);
+
+            // Act
+            await this.sut.MonitorClusterState(schedulerId, CancellationToken.None);
+
+            // Assert
+            this.schedulerMetadataStore.Verify(s => s.RemoveScheduler(failedSchedulerId), Times.Once);
+            Assert.All(failedJobs, j => this.jobStore.Verify(s => s.FinalizeJob(j.Item1, j.Item2, JobExecutionResult.SchedulerStalled), Times.Once));
+            Assert.All(timeoutedJobs, j => this.jobStore.Verify(s => s.FinalizeJob(j.Item1, j.Item2, JobExecutionResult.Timeouted), Times.Once));
         }
     }
 }

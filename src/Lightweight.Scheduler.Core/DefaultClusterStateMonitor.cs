@@ -42,7 +42,7 @@
 
         private Task MonitorTimeoutedJobs(CancellationToken cancellationToken)
         {
-            return this.DoChildAction(ct => this.MonitorTimeoutedJobs(ct), cancellationToken);
+            return this.DoChildAction(ct => this.MonitorTimeoutedJobsInternal(ct), cancellationToken);
         }
 
         private async Task MonitorStalledSchedulersInternal(TSchedulerKey ownerSchedulerId, CancellationToken cancellationToken)
