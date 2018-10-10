@@ -132,11 +132,17 @@
                     stopwatch.Stop();
                     await this.WaitForNextIteration(stopwatch.Elapsed).ConfigureAwait(false);
                 }
+                catch (OperationCanceledException) when (this.cancellationTokenSource.IsCancellationRequested)
+                {
+                    break;
+                }
                 catch (Exception ex)
                 {
                     this.logger.LogError(ex, "Main cycle failed: {0}", ex.Message);
                 }
             }
+
+            this.logger.LogInformation("Scheduler {0}: Main thread exiting", this.schedulerId);
         }
 
         private Task DoHeartbeat()
@@ -175,13 +181,7 @@
         {
             if (iteration < this.metadata.HeartbeatInterval)
             {
-                try
-                {
-                    await Task.Delay(this.metadata.HeartbeatInterval - iteration, this.cancellationTokenSource.Token).ConfigureAwait(false);
-                }
-                catch (OperationCanceledException)
-                {
-                }
+                await Task.Delay(this.metadata.HeartbeatInterval - iteration, this.cancellationTokenSource.Token).ConfigureAwait(false);
             }
         }
     }
