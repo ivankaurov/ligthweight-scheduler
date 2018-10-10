@@ -1,7 +1,9 @@
 ﻿namespace Lightweight.Scheduler.Tests.Unit.Core
 {
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
     using Lightweight.Scheduler.Abstractions;
@@ -120,7 +122,7 @@
         [Theory]
         [AutoMoqInlineData(typeof(Exception))]
         [AutoMoqInlineData(typeof(OperationCanceledException))]
-        public async Task ShouldHandleHeartbeatException(Type exceptionType)
+        public async Task ShouldDoNothingAfterHeartbeatException(Type exceptionType)
         {
             // Arrange
             var ex = (Exception)Activator.CreateInstance(exceptionType);
@@ -131,15 +133,15 @@
             await Task.Delay(400);
 
             // Assert
-            this.schedulerStateMonitor.Verify(s => s.MonitorClusterState(this.schedulerId, It.IsAny<CancellationToken>()), Times.AtLeast(2));
-            this.jobProcessor.Verify(s => s.ProcessJobs(this.schedulerId, It.IsAny<CancellationToken>()), Times.AtLeast(2));
-            this.schedulerMetadataStore.VerifyAll();
+            this.schedulerStateMonitor.Verify(s => s.MonitorClusterState(this.schedulerId, It.IsAny<CancellationToken>()), Times.Never);
+            this.jobProcessor.Verify(s => s.ProcessJobs(this.schedulerId, It.IsAny<CancellationToken>()), Times.Never);
+            this.schedulerMetadataStore.Verify(s => s.Heartbeat(this.schedulerId), Times.AtLeast(2));
         }
 
         [Theory]
         [AutoMoqInlineData(typeof(Exception))]
         [AutoMoqInlineData(typeof(OperationCanceledException))]
-        public async Task ShouldHandleClusterMonitorException(Type exceptionType)
+        public async Task ShouldDoNothingAfterClusterMonitorException(Type exceptionType)
         {
             // Arrange
             var ex = (Exception)Activator.CreateInstance(exceptionType);
@@ -151,8 +153,8 @@
 
             // Assert
             this.schedulerMetadataStore.Verify(s => s.Heartbeat(this.schedulerId), Times.AtLeast(2));
-            this.jobProcessor.Verify(s => s.ProcessJobs(this.schedulerId, It.IsAny<CancellationToken>()), Times.AtLeast(2));
-            this.schedulerStateMonitor.VerifyAll();
+            this.jobProcessor.Verify(s => s.ProcessJobs(this.schedulerId, It.IsAny<CancellationToken>()), Times.Never);
+            this.schedulerStateMonitor.Verify(s => s.MonitorClusterState(this.schedulerId, It.IsAny<CancellationToken>()), Times.AtLeast(2));
         }
 
         [Theory]
@@ -172,6 +174,27 @@
             this.schedulerMetadataStore.Verify(s => s.Heartbeat(this.schedulerId), Times.AtLeast(2));
             this.schedulerStateMonitor.Verify(s => s.MonitorClusterState(this.schedulerId, It.IsAny<CancellationToken>()), Times.AtLeast(2));
             this.jobProcessor.VerifyAll();
+        }
+
+        [Fact]
+        public async Task ShouldWaitForHeartbeatInterval()
+        {
+            // Arrange
+            var data = new List<DateTimeOffset>();
+            this.schedulerMetadataStore.Setup(s => s.Heartbeat(this.schedulerId)).Returns(() =>
+            {
+                data.Add(DateTimeOffset.Now);
+                return Task.CompletedTask;
+            });
+
+            // Act
+            await this.sut.Start();
+            await Task.Delay(500);
+            await this.sut.Stop();
+
+            // Assert
+            Assert.True(data.Count > 2);
+            Assert.All(Enumerable.Range(1, data.Count - 1), i => Assert.True(data[i] - data[i - 1] >= TimeSpan.FromMilliseconds(90)));
         }
 
         [Fact]
