@@ -18,7 +18,7 @@
         private readonly Guid schedulerId = Guid.NewGuid();
         private readonly Mock<ISchedulerMetadata> schedulerMetadata = new Mock<ISchedulerMetadata>();
         private readonly Mock<ISchedulerMetadataStore<Guid>> schedulerMetadataStore = new Mock<ISchedulerMetadataStore<Guid>>();
-        private readonly Mock<ISchedulerStateMonitor<Guid>> schedulerStateMonitor = new Mock<ISchedulerStateMonitor<Guid>>();
+        private readonly Mock<IClusterStateMonitor<Guid>> schedulerStateMonitor = new Mock<IClusterStateMonitor<Guid>>();
         private readonly Mock<IJobProcessor<Guid>> jobProcessor = new Mock<IJobProcessor<Guid>>();
         private readonly Mock<ILogger<DefaultScheduler<Guid>>> logger = new Mock<ILogger<DefaultScheduler<Guid>>>();
         private readonly DefaultScheduler<Guid> sut;
