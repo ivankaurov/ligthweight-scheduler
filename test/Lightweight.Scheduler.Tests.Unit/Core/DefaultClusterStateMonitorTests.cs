@@ -39,22 +39,22 @@
         public async Task VerifyCallOrder(
             string schedulerId,
             (string, Mock<ISchedulerMetadata>)[] failedSchedulers,
-            (Guid, IJobMetadata)[] failedJobs,
-            (Guid, IJobMetadata)[] timeoutedJobs)
+            (Guid, Mock<IJobMetadata>)[] failedJobs,
+            (Guid, Mock<IJobMetadata>)[] timeoutedJobs)
         {
             // Arrange
             this.SetupSchedulersMocks(failed: failedSchedulers);
-
-            this.jobStore.Setup(s => s.GetExecutingJobs(failedSchedulers[0].Item1)).ReturnsAsync(failedJobs);
-            this.jobStore.Setup(s => s.GetTimeoutedJobs()).ReturnsAsync(timeoutedJobs);
+            this.SetupJobStoreMocks(failedSchedulers[0].Item1, failedJobs, timeoutedJobs);
 
             // Act
             await this.sut.MonitorClusterState(schedulerId, CancellationToken.None);
 
             // Assert
             Assert.All(failedSchedulers, f => this.schedulerMetadataStore.Verify(s => s.RemoveScheduler(f.Item1), Times.Once));
-            Assert.All(failedJobs, j => this.jobStore.Verify(s => s.FinalizeJob(j.Item1, j.Item2, JobExecutionResult.SchedulerStalled), Times.Once));
-            Assert.All(timeoutedJobs, j => this.jobStore.Verify(s => s.FinalizeJob(j.Item1, j.Item2, JobExecutionResult.Timeouted), Times.Once));
+            Assert.All(failedJobs, j => this.jobStore.Verify(s => s.RecoverJob(j.Item1, JobExecutionResult.SchedulerStalled), Times.Once));
+            Assert.All(failedJobs, j => j.Item2.Verify(s => s.SetNextExecutionTime(), Times.Never));
+            Assert.All(timeoutedJobs, j => this.jobStore.Verify(s => s.FinalizeJob(j.Item1, j.Item2.Object, JobExecutionResult.Timeouted), Times.Once));
+            Assert.All(timeoutedJobs, j => j.Item2.Verify(s => s.SetNextExecutionTime(), Times.Once));
         }
 
         [Theory]
@@ -75,7 +75,7 @@
 
             // Assert
             this.schedulerMetadataStore.VerifyAll();
-            this.jobStore.Verify(s => s.FinalizeJob(job.Item1, job.Item2, JobExecutionResult.SchedulerStalled), Times.Once);
+            this.jobStore.Verify(s => s.RecoverJob(job.Item1, JobExecutionResult.SchedulerStalled), Times.Once);
         }
 
         [Theory]
@@ -130,6 +130,19 @@
             }
 
             this.schedulerMetadataStore.Setup(s => s.GetSchedulers()).ReturnsAsync(allSchedulers.ToArray());
+        }
+
+        private void SetupJobStoreMocks(string failedSchedulerId = null, (Guid, Mock<IJobMetadata>)[] failed = null, (Guid, Mock<IJobMetadata>)[] timeouted = null)
+        {
+            if (failed != null)
+            {
+                this.jobStore.Setup(s => s.GetExecutingJobs(failedSchedulerId)).ReturnsAsync(failed.Select(f => (f.Item1, f.Item2.Object)).ToArray());
+            }
+
+            if (timeouted != null)
+            {
+                this.jobStore.Setup(s => s.GetTimeoutedJobs()).ReturnsAsync(timeouted.Select(j => (j.Item1, j.Item2.Object)).ToArray());
+            }
         }
     }
 }

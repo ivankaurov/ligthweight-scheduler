@@ -15,6 +15,6 @@
 
         Task FinalizeJob(TJobKey jobId, IJobMetadata metadata, JobExecutionResult result);
 
-        Task UpdateJob(TJobKey jobId, IJobMetadata metadata, TSchedulerKey schedulerId);
+        Task RecoverJob(TJobKey jobId, JobExecutionResult recoverReason);
     }
 }

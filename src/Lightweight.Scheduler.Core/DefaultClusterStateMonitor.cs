@@ -98,7 +98,7 @@
             {
                 try
                 {
-                    await this.ProcessStalledJob(stalledJob.id, stalledJob.metadata, JobExecutionResult.SchedulerStalled).ConfigureAwait(false);
+                    await this.RecoverJob(stalledJob.id).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -107,12 +107,12 @@
             }
         }
 
-        private async Task ProcessStalledJob(TJobKey jobKey, IJobMetadata jobMetadata, JobExecutionResult result)
+        private async Task RecoverJob(TJobKey jobKey)
         {
             try
             {
-                await this.jobStore.FinalizeJob(jobKey, jobMetadata, result).ConfigureAwait(false);
-                this.logger.LogInformation("Job {0} is recovered and rescheduled immediately. Result set to {1}", jobKey, result);
+                await this.jobStore.RecoverJob(jobKey, JobExecutionResult.SchedulerStalled).ConfigureAwait(false);
+                this.logger.LogInformation("Job {0} is recovered and rescheduled immediately. Result set to {1}", jobKey, JobExecutionResult.SchedulerStalled);
             }
             catch (ConcurrencyException ex)
             {
@@ -136,12 +136,34 @@
                 cancellationToken.ThrowIfCancellationRequested();
                 try
                 {
-                    await this.ProcessStalledJob(job.id, job.metadata, JobExecutionResult.Timeouted).ConfigureAwait(false);
+                    await this.ProcessTimeoutedJob(job.id, job.metadata).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
                     this.logger.LogError(ex, "Processing timeouted job {0} failed: {1}", job.id, ex.Message);
                 }
+            }
+        }
+
+        private async Task ProcessTimeoutedJob(TJobKey jobId, IJobMetadata jobMetadata)
+        {
+            try
+            {
+                jobMetadata.SetNextExecutionTime();
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Failed to calculate execution time of job {0}: {1}. Job will be rescheduled immediately", jobId, ex.Message);
+            }
+
+            try
+            {
+                await this.jobStore.FinalizeJob(jobId, jobMetadata, JobExecutionResult.Timeouted).ConfigureAwait(false);
+                this.logger.LogInformation("TImeouted job {0} rescheduled", jobId);
+            }
+            catch (ConcurrencyException ex)
+            {
+                this.logger.LogInformation(ex, "Job {0} was recovered by someone else: {1}", ex.Message);
             }
         }
 
