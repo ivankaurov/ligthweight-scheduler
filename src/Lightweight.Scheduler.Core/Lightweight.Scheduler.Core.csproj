@@ -4,6 +4,9 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <DefaultNamespace>Lightweight.Scheduler.Core</DefaultNamespace>
     <AssemblyName>Lightweight.Scheduler.Core</AssemblyName>
+    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+    <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
   </PropertyGroup>
 
   <ItemGroup>

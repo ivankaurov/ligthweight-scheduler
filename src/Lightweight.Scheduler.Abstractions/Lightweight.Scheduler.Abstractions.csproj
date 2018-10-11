@@ -4,6 +4,9 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <DefaultNamespace>Lightweight.Scheduler.Abstractions</DefaultNamespace>
     <AssemblyName>Lightweight.Scheduler.Abstractions</AssemblyName>
+    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+    <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
   </PropertyGroup>
 
   <ItemGroup>

@@ -5,6 +5,9 @@
     <IsPackable>false</IsPackable>
     <DefaultNamespace>Lightweight.Scheduler.Tests.Unit</DefaultNamespace>
     <AssemblyName>Lightweight.Scheduler.Tests.Unit</AssemblyName>
+    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+    <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
   </PropertyGroup>
 
   <ItemGroup>
