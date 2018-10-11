@@ -6,14 +6,15 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shared", "shared", "{5554A399-3312-47C1-AD1F-6D3D55B12AD5}"
 	ProjectSection(SolutionItems) = preProject
 		shared\AssemblyInfo.Shared.cs = shared\AssemblyInfo.Shared.cs
+		GitVersion.yaml = GitVersion.yaml
 		shared\StyleCop.ruleset = shared\StyleCop.ruleset
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lightweight.Scheduler.Abstractions", "src\Lightweight.Scheduler.Abstractions\Lightweight.Scheduler.Abstractions.csproj", "{5B8D55F7-151E-439B-A232-718B5AF7E63F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lightweight.Scheduler.Abstractions", "src\Lightweight.Scheduler.Abstractions\Lightweight.Scheduler.Abstractions.csproj", "{5B8D55F7-151E-439B-A232-718B5AF7E63F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lightweight.Scheduler.Tests.Unit", "test\Lightweight.Scheduler.Tests.Unit\Lightweight.Scheduler.Tests.Unit.csproj", "{15C8F5B7-BF9C-4759-BB3D-CE9487EAED24}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lightweight.Scheduler.Tests.Unit", "test\Lightweight.Scheduler.Tests.Unit\Lightweight.Scheduler.Tests.Unit.csproj", "{15C8F5B7-BF9C-4759-BB3D-CE9487EAED24}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lightweight.Scheduler.Core", "src\Lightweight.Scheduler.Core\Lightweight.Scheduler.Core.csproj", "{833978BE-4EC3-4076-A51F-1FEB66A9E902}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lightweight.Scheduler.Core", "src\Lightweight.Scheduler.Core\Lightweight.Scheduler.Core.csproj", "{833978BE-4EC3-4076-A51F-1FEB66A9E902}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
