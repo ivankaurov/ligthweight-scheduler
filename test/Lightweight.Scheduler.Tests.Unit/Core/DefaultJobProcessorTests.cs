@@ -66,7 +66,7 @@
         {
             // Arrange
             var exceptionThrown = false;
-            var cts = new CancellationTokenSource(1000);
+            var cts = new CancellationTokenSource(800);
             this.jobStore.Setup(s => s.GetJobsForExecution()).ReturnsAsync(new[] { job });
             this.singleJobProcessor.Setup(s => s.ProcessSingleJob(
                 job.id,
@@ -95,8 +95,8 @@
             var executionTime = sw.Elapsed;
 
             // Assert
-            Assert.True(callTime.TotalMilliseconds < 900);
-            Assert.True(executionTime.TotalMilliseconds > callTime.TotalMilliseconds + 200);
+            Assert.True(callTime.TotalMilliseconds < 300);
+            Assert.True(executionTime.TotalMilliseconds > 500);
             Assert.True(executionTime.TotalMilliseconds < 5000);
         }
 
