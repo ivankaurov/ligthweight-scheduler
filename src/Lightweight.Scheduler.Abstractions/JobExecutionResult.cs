@@ -7,5 +7,6 @@
         Cancelled,
         Timeouted,
         Failed,
+        SchedulerStalled,
     }
 }

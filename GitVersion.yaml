@@ -4,7 +4,3 @@ assembly-file-versioning-scheme: MajorMinorPatch
 assembly-informational-format: {InformationalVersion}
 increment: Inherit
 tag-prefix: '[vV]\.?'
-branches:
-  master:
-    regex: master
-	tag: beta

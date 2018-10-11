@@ -3,7 +3,7 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    public interface ISchedulerStateMonitor<TSchedulerKey>
+    public interface IClusterStateMonitor<TSchedulerKey>
     {
         Task MonitorClusterState(TSchedulerKey ownerSchedulerId, CancellationToken cancellationToken);
     }

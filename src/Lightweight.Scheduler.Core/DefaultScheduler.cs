@@ -13,7 +13,7 @@
         private readonly TStorageKey schedulerId;
         private readonly ISchedulerMetadata metadata;
         private readonly ISchedulerMetadataStore<TStorageKey> schedulerMetadataStore;
-        private readonly ISchedulerStateMonitor<TStorageKey> schedulerStateMonitor;
+        private readonly IClusterStateMonitor<TStorageKey> clusterStateMonitor;
         private readonly IJobProcessor<TStorageKey> jobProcessor;
         private readonly ILogger<DefaultScheduler<TStorageKey>> logger;
 
@@ -27,14 +27,14 @@
             TStorageKey schedulerId,
             ISchedulerMetadata schedulerMetadata,
             ISchedulerMetadataStore<TStorageKey> schedulerMetadataStore,
-            ISchedulerStateMonitor<TStorageKey> schedulerStateMonitor,
+            IClusterStateMonitor<TStorageKey> clusterStateMonitor,
             IJobProcessor<TStorageKey> jobProcessor,
             ILogger<DefaultScheduler<TStorageKey>> logger)
         {
             this.schedulerId = schedulerId;
             this.metadata = schedulerMetadata;
             this.schedulerMetadataStore = schedulerMetadataStore;
-            this.schedulerStateMonitor = schedulerStateMonitor;
+            this.clusterStateMonitor = clusterStateMonitor;
             this.jobProcessor = jobProcessor;
             this.logger = logger;
         }
@@ -151,7 +151,7 @@
 
         private Task DoClusterMonitoring()
         {
-            return this.DoChildAction(() => this.schedulerStateMonitor.MonitorClusterState(this.schedulerId, this.cancellationTokenSource.Token));
+            return this.DoChildAction(() => this.clusterStateMonitor.MonitorClusterState(this.schedulerId, this.cancellationTokenSource.Token));
         }
 
         private Task ProcessJobs()

@@ -7,5 +7,7 @@
         TimeSpan HeartbeatInterval { get; }
 
         TimeSpan HeartbeatTimeout { get; }
+
+        DateTimeOffset LastCheckin { get; }
     }
 }
