@@ -1,0 +1,14 @@
+mode: ContinuousDeployment
+assembly-versioning-scheme: Major
+assembly-informational-format: "{FullSemVer}"
+continuous-delivery-fallback-tag: "{Branch}"
+branches:
+  master:
+    tag: ''
+    increment: Patch
+    prevent-increment-of-merged-branch-version: true
+  (pull|pull\-requests|pr)[/-]:
+    tag: PullRequest
+    increment: Inherit
+    track-merge-target: true
+    tag-number-pattern: '[/-](?<number>\d+)[-/]'
