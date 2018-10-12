@@ -9,7 +9,7 @@
 
         Task Heartbeat(TStorageId schedulerId);
 
-        Task<ICollection<(TStorageId id, ISchedulerMetadata metadata)>> GetSchedulers();
+        Task<ICollection<(TStorageId id, ISchedulerMetadata metadata)>> GetStalledSchedulers();
 
         Task RemoveScheduler(TStorageId schedulerId);
     }

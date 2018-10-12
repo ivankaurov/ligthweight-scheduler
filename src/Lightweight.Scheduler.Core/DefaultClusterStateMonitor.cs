@@ -2,7 +2,6 @@
 {
     using System;
     using System.Diagnostics;
-    using System.Linq;
     using System.Runtime.CompilerServices;
     using System.Threading;
     using System.Threading.Tasks;
@@ -14,18 +13,15 @@
     {
         private readonly ISchedulerMetadataStore<TSchedulerKey> schedulerMetadataStore;
         private readonly IJobStore<TJobKey, TSchedulerKey> jobStore;
-        private readonly IDateTimeProvider dateTimeProvider;
         private readonly ILogger<DefaultClusterStateMonitor<TSchedulerKey, TJobKey>> logger;
 
         public DefaultClusterStateMonitor(
             ISchedulerMetadataStore<TSchedulerKey> schedulerMetadataStore,
             IJobStore<TJobKey, TSchedulerKey> jobStore,
-            IDateTimeProvider dateTimeProvider,
             ILogger<DefaultClusterStateMonitor<TSchedulerKey, TJobKey>> logger)
         {
             this.schedulerMetadataStore = schedulerMetadataStore;
             this.jobStore = jobStore;
-            this.dateTimeProvider = dateTimeProvider;
             this.logger = logger;
         }
 
@@ -47,32 +43,37 @@
 
         private async Task MonitorStalledSchedulersInternal(TSchedulerKey ownerSchedulerId, CancellationToken cancellationToken)
         {
-            var schedulers = await this.schedulerMetadataStore.GetSchedulers().ConfigureAwait(false);
-            this.logger.LogTrace("{0} scheduler(s) found", schedulers.Count);
-            if (!schedulers.Any(s => s.id.Equals(ownerSchedulerId)))
+            var stalledSchedulers = await this.schedulerMetadataStore.GetStalledSchedulers().ConfigureAwait(false);
+            if (stalledSchedulers.Count == 0)
             {
-                this.logger.LogWarning("Own scheduler not found");
+                this.logger.LogTrace("No stalled schedulers found");
+                return;
             }
 
-            var now = this.dateTimeProvider.Now();
-            var failedSchedulers = schedulers.Where(s => !s.id.Equals(ownerSchedulerId) && (now - s.metadata.LastCheckin) > s.metadata.HeartbeatTimeout);
+            this.logger.LogWarning("{0} stalled scheduler(s) found", stalledSchedulers.Count);
 
-            foreach (var failedScheduler in failedSchedulers)
+            foreach (var stalledScheduler in stalledSchedulers)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
+                if (stalledScheduler.id.Equals(ownerSchedulerId))
+                {
+                    this.logger.LogWarning("Self scheduler detected as stalled");
+                    continue;
+                }
+
                 try
                 {
-                    await this.ProcessFailedScheduler(failedScheduler.id, failedScheduler.metadata).ConfigureAwait(false);
+                    await this.ProcessStalledScheduler(stalledScheduler.id, stalledScheduler.metadata).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
-                    this.logger.LogError(ex, "Processing failed scheduler {0} failed: {1}", failedScheduler.id, ex.Message);
+                    this.logger.LogError(ex, "Processing stalled scheduler {0} failed: {1}", stalledScheduler.id, ex.Message);
                 }
             }
         }
 
-        private async Task ProcessFailedScheduler(TSchedulerKey schedulerId, ISchedulerMetadata schedulerMetadata)
+        private async Task ProcessStalledScheduler(TSchedulerKey schedulerId, ISchedulerMetadata schedulerMetadata)
         {
             this.logger.LogWarning("Scheduler {0} seems to be stalled. Last heartbeat at {1}, Timeout {2}", schedulerId, schedulerMetadata.LastCheckin, schedulerMetadata.HeartbeatTimeout);
 
@@ -118,6 +119,10 @@
             {
                 this.logger.LogInformation(ex, "Job {0} recovered by someone else: {1}", jobKey, ex.Message);
             }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Processing job {0} at stalled scheduler failed: {1}", jobKey, ex.Message);
+            }
         }
 
         private async Task MonitorTimeoutedJobsInternal(CancellationToken cancellationToken)
@@ -133,20 +138,14 @@
 
             foreach (var job in timeoutedJobs)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                try
-                {
-                    await this.ProcessTimeoutedJob(job.id, job.metadata).ConfigureAwait(false);
-                }
-                catch (Exception ex)
-                {
-                    this.logger.LogError(ex, "Processing timeouted job {0} failed: {1}", job.id, ex.Message);
-                }
+                await this.ProcessTimeoutedJob(job.id, job.metadata, cancellationToken).ConfigureAwait(false);
             }
         }
 
-        private async Task ProcessTimeoutedJob(TJobKey jobId, IJobMetadata jobMetadata)
+        private async Task ProcessTimeoutedJob(TJobKey jobId, IJobMetadata jobMetadata, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             try
             {
                 jobMetadata.SetNextExecutionTime();
@@ -163,7 +162,11 @@
             }
             catch (ConcurrencyException ex)
             {
-                this.logger.LogInformation(ex, "Job {0} was recovered by someone else: {1}", ex.Message);
+                this.logger.LogInformation(ex, "Job {0} was recovered by someone else: {1}", jobId, ex.Message);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Processing timeouted job {0} failed: {1}", jobId, ex.Message);
             }
         }
 
