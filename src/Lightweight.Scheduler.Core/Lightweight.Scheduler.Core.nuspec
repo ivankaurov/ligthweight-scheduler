@@ -14,7 +14,7 @@
     <tags>scheduler</tags>
     <repository type="git" url="https://github.com/ivankaurov/ligthweight-scheduler.git" />
     <dependencies>
-      <dependency id="Lightweight.Scheduler.Abstractions" version="$version$" />
+      <dependency id="Lightweight.Scheduler.Abstractions.Internal" version="$version$" />
       <dependency id="Lightweight.Scheduler.Utils" version="$version$" />
       <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="[3.1.2,)" />
       <dependency id="Microsoft.Extensions.Logging.Abstractions" version="[3.1.2,)" />

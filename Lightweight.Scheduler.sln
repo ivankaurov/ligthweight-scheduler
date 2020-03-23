@@ -18,6 +18,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lightweight.Scheduler.Core"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utils", "src\Utils\Utils.csproj", "{2F9228C1-4B85-42C8-8746-0D135B43D9BB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Abstractions.Internal", "src\Abstractions.Internal\Abstractions.Internal.csproj", "{A0F5B53A-9C04-4C65-9381-2DFD1EFC1BD4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -40,6 +42,10 @@ Global
 		{2F9228C1-4B85-42C8-8746-0D135B43D9BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2F9228C1-4B85-42C8-8746-0D135B43D9BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2F9228C1-4B85-42C8-8746-0D135B43D9BB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A0F5B53A-9C04-4C65-9381-2DFD1EFC1BD4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A0F5B53A-9C04-4C65-9381-2DFD1EFC1BD4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A0F5B53A-9C04-4C65-9381-2DFD1EFC1BD4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A0F5B53A-9C04-4C65-9381-2DFD1EFC1BD4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

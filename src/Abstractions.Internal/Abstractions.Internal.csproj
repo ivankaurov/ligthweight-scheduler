@@ -1,9 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <RootNamespace>Lightweight.Scheduler.Core</RootNamespace>
-    <AssemblyName>Lightweight.Scheduler.Core</AssemblyName>
+    <RootNamespace>Lightweight.Scheduler.Abstractions.Internal</RootNamespace>
+    <AssemblyName>Lightweight.Scheduler.Abstractions.Internal</AssemblyName>
     <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
     <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
@@ -12,10 +12,10 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <NuspecFile>Lightweight.Scheduler.Core.nuspec</NuspecFile>
+    <NuspecFile>Lightweight.Scheduler.Abstractions.Internal.nuspec</NuspecFile>
     <NuspecProperties>version=$(PackageVersion);configuration=$(Configuration)</NuspecProperties>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <Compile Include="..\..\shared\AssemblyInfo.Shared.cs">
       <Link>Properties\AssemblyInfo.Shared.cs</Link>
@@ -23,14 +23,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="3.1.2" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.1.2" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.164" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Abstractions.Internal\Abstractions.Internal.csproj" />
-    <ProjectReference Include="..\Utils\Utils.csproj" />
+    <ProjectReference Include="..\Lightweight.Scheduler.Abstractions\Lightweight.Scheduler.Abstractions.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
