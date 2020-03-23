@@ -1,8 +1,8 @@
 ﻿namespace Lightweight.Scheduler.Abstractions
 {
-    public interface IJobDescriptor<TId>
+    public interface IJobDescriptor<out TId, TVersion>
     {
-        TId Id { get; }
+        IVersionedId<TId, TVersion> Id { get; }
 
         IPersistentContext Context { get; }
 
