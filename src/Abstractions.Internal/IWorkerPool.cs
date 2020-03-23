@@ -1,5 +1,6 @@
 ﻿namespace Lightweight.Scheduler.Abstractions.Internal
 {
+    using System;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -7,6 +8,6 @@
     {
         int AvailableWorkers { get; }
 
-        Task<IWorker?> TryGetWorker(CancellationToken cancellationToken);
+        Task InvokeOnPool(Func<CancellationToken, Task> action, CancellationToken cancellationToken);
     }
 }
