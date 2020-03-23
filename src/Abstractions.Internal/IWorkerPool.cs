@@ -8,6 +8,6 @@
     {
         int AvailableWorkers { get; }
 
-        Task InvokeOnPool(Func<Task> action, CancellationToken cancellationToken);
+        Task<T> InvokeOnPool<T>(Func<Task<T>> action, CancellationToken cancellationToken);
     }
 }

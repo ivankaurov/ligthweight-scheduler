@@ -33,7 +33,7 @@
             }
         }
 
-        public async Task InvokeOnPool(Func<Task> action, CancellationToken cancellationToken)
+        public async Task<T> InvokeOnPool<T>(Func<Task<T>> action, CancellationToken cancellationToken)
         {
             this.CheckIfDisposed();
 
@@ -44,7 +44,7 @@
 
             try
             {
-                await action().ConfigureAwait(false);
+                return await action().ConfigureAwait(false);
             }
             finally
             {
