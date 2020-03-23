@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
-    <DefaultNamespace>Lightweight.Scheduler.Abstractions</DefaultNamespace>
+    <RootNamespace>Lightweight.Scheduler.Abstractions</RootNamespace>
     <AssemblyName>Lightweight.Scheduler.Abstractions</AssemblyName>
     <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
     <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
