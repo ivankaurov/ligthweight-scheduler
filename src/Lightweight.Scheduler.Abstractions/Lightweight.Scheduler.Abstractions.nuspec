@@ -10,11 +10,11 @@
     <licenseUrl>https://raw.githubusercontent.com/ivankaurov/ligthweight-scheduler/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/ivankaurov/ligthweight-scheduler</projectUrl>
     <description>Abstractions for lightweight scheduler</description>
-    <copyright>(c) Ivan Kaurov 2018</copyright>
+    <copyright>(c) Ivan Kaurov 2020</copyright>
     <tags>scheduler</tags>
     <repository type="git" url="https://github.com/ivankaurov/ligthweight-scheduler.git" />
   </metadata>
   <files>
-    <file src="bin\$configuration$\netstandard2.0\Lightweight.Scheduler.Abstractions.dll" target="lib\netstandard2.0" />
+    <file src="bin\$configuration$\netstandard2.1\Lightweight.Scheduler.Abstractions.dll" target="lib\netstandard2.1" />
   </files>
 </package>
