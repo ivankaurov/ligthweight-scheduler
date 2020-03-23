@@ -2,7 +2,7 @@
 {
     public interface IExecutionContext
     {
-        IPersistentContext PersistentContext { get; }
+        IUserContext UserContext { get; }
 
         int Attempt { get; }
     }

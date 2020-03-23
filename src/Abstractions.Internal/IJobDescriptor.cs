@@ -1,4 +1,4 @@
-﻿namespace Lightweight.Scheduler.Abstractions
+﻿namespace Lightweight.Scheduler.Abstractions.Internal
 {
     public interface IJobDescriptor<out TId, TVersion>
     {

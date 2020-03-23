@@ -2,7 +2,7 @@
 {
     using System.Collections.Generic;
 
-    public interface IPersistentContext
+    public interface IUserContext
     {
         IDictionary<string, string> Values { get; }
     }
