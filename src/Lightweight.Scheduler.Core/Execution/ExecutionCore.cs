@@ -80,7 +80,7 @@
             {
                 var sw = Stopwatch.StartNew();
 
-                await this.workerPool.InvokeOnPool(token => this.jobExecutor.Invoke(jobDescriptor, token), cancellationToken)
+                await this.workerPool.InvokeOnPool(() => this.jobExecutor.Invoke(jobDescriptor, cancellationToken), cancellationToken)
                     .ConfigureAwait(false);
                 sw.Stop();
 

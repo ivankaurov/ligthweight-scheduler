@@ -18,6 +18,7 @@
       <dependency id="Lightweight.Scheduler.Utils" version="$version$" />
       <dependency id="Microsoft.Extensions.DependencyInjection.Abstractions" version="[3.1.2,)" />
       <dependency id="Microsoft.Extensions.Logging.Abstractions" version="[3.1.2,)" />
+      <dependency id="Microsoft.Extensions.Options.DataAnnotations" version="[3.1.2,)" />
     </dependencies>
   </metadata>
   <files>
