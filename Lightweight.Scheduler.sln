@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.27703.2035
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29806.167
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shared", "shared", "{5554A399-3312-47C1-AD1F-6D3D55B12AD5}"
 	ProjectSection(SolutionItems) = preProject
@@ -15,6 +15,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lightweight.Scheduler.Tests.Unit", "test\Lightweight.Scheduler.Tests.Unit\Lightweight.Scheduler.Tests.Unit.csproj", "{15C8F5B7-BF9C-4759-BB3D-CE9487EAED24}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Lightweight.Scheduler.Core", "src\Lightweight.Scheduler.Core\Lightweight.Scheduler.Core.csproj", "{833978BE-4EC3-4076-A51F-1FEB66A9E902}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utils", "src\Utils\Utils.csproj", "{2F9228C1-4B85-42C8-8746-0D135B43D9BB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -34,6 +36,10 @@ Global
 		{833978BE-4EC3-4076-A51F-1FEB66A9E902}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{833978BE-4EC3-4076-A51F-1FEB66A9E902}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{833978BE-4EC3-4076-A51F-1FEB66A9E902}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2F9228C1-4B85-42C8-8746-0D135B43D9BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2F9228C1-4B85-42C8-8746-0D135B43D9BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2F9228C1-4B85-42C8-8746-0D135B43D9BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2F9228C1-4B85-42C8-8746-0D135B43D9BB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
