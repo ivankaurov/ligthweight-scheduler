@@ -1,10 +1,4 @@
-﻿// -----------------------------------------------------------------------
-// <copyright file="IPersistentContext.cs" company="Intermedia">
-//   Copyright © Intermedia.net, Inc. All rights reserved.
-// </copyright>
-// -----------------------------------------------------------------------
-
-namespace Lightweight.Scheduler.Abstractions.Internal
+﻿namespace Lightweight.Scheduler.Abstractions.Internal
 {
     public interface IPersistentContext
     {

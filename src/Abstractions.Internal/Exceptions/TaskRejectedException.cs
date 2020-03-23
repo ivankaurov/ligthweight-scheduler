@@ -1,10 +1,4 @@
-﻿// -----------------------------------------------------------------------
-// <copyright file="TaskRejectedException.cs" company="Intermedia">
-//   Copyright © Intermedia.net, Inc. All rights reserved.
-// </copyright>
-// -----------------------------------------------------------------------
-
-namespace Lightweight.Scheduler.Abstractions.Internal.Exceptions
+﻿namespace Lightweight.Scheduler.Abstractions.Internal.Exceptions
 {
     using System;
 

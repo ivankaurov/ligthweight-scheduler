@@ -1,10 +1,4 @@
-﻿// -----------------------------------------------------------------------
-// <copyright file="TaskExtensions.cs" company="Intermedia">
-//   Copyright © Intermedia.net, Inc. All rights reserved.
-// </copyright>
-// -----------------------------------------------------------------------
-
-namespace Lightweight.Scheduler.Utils
+﻿namespace Lightweight.Scheduler.Utils
 {
     using System.Threading.Tasks;
 
