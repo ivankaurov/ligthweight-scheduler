@@ -1,10 +1,4 @@
-﻿// -----------------------------------------------------------------------
-// <copyright file="ExecutionContext.cs" company="Intermedia">
-//   Copyright © Intermedia.net, Inc. All rights reserved.
-// </copyright>
-// -----------------------------------------------------------------------
-
-namespace Lightweight.Scheduler.Core.Execution
+﻿namespace Lightweight.Scheduler.Core.Execution
 {
     using Lightweight.Scheduler.Abstractions;
 

@@ -1,10 +1,4 @@
-﻿// -----------------------------------------------------------------------
-// <copyright file="CoreJobExecutor.cs" company="Intermedia">
-//   Copyright © Intermedia.net, Inc. All rights reserved.
-// </copyright>
-// -----------------------------------------------------------------------
-
-namespace Lightweight.Scheduler.Core.Execution
+﻿namespace Lightweight.Scheduler.Core.Execution
 {
     using System;
     using System.Threading;
@@ -44,13 +38,12 @@ namespace Lightweight.Scheduler.Core.Execution
 
         public async Task<JobExecutionResult> Invoke(IJobDescriptor<TJobId, TVersion> jobDescriptor, CancellationToken cancellationToken)
         {
-            var context = new ExecutionContext(jobDescriptor.Context.UserContext, jobDescriptor.Context.Attempt + 1);
-            this.logger.LogTrace("Trying to start execution of job {id} attempt {attempt}", jobDescriptor.Id, context.Attempt);
-            var nextDelta = this.GetNextExecutionDelta(jobDescriptor, context);
+            this.logger.LogTrace("Trying to start execution of job {id}", jobDescriptor.Id);
 
+            IExecutionContext executionContext;
             try
             {
-                await this.StartJobExecution(jobDescriptor, nextDelta, cancellationToken);
+                executionContext = await this.StartJobExecution(jobDescriptor, cancellationToken).ConfigureAwait(false);
             }
             catch (ConcurrencyException ex)
             {
@@ -61,7 +54,7 @@ namespace Lightweight.Scheduler.Core.Execution
             (JobExecutionResult Result, TimeSpan? NextDelta) result = (JobExecutionResult.Failed, null);
             try
             {
-                result = await this.InvokeCore(jobDescriptor, context).ConfigureAwait(false);
+                result = await this.InvokeCore(jobDescriptor, executionContext).ConfigureAwait(false);
             }
             finally
             {
@@ -71,17 +64,36 @@ namespace Lightweight.Scheduler.Core.Execution
             return result.Result;
         }
 
-        private async Task StartJobExecution(IJobDescriptor<TJobId, TVersion> jobDescriptor, TimeSpan? nextDelta, CancellationToken cancellationToken)
+        private async Task<IExecutionContext> StartJobExecution(IJobDescriptor<TJobId, TVersion> jobDescriptor, CancellationToken cancellationToken)
         {
-            if (jobDescriptor.Schedule.Exclusive)
+            var executionContext = new ExecutionContext(jobDescriptor.Context.UserContext, jobDescriptor.Context.Attempt + 1);
+
+            switch (jobDescriptor.Schedule)
             {
-                await this.jobStore.StartExclusiveExecution(jobDescriptor.Id, this.ownerNodeId, nextDelta, cancellationToken)
-                    .ConfigureAwait(false);
-            }
-            else
-            {
-                await this.jobStore.StartExecution(jobDescriptor.Id, nextDelta, cancellationToken)
-                    .ConfigureAwait(false);
+                case { Exclusive: true, DelayedCalculation: true }:
+                    await this.jobStore.StartExclusiveExecution(jobDescriptor.Id, this.ownerNodeId, cancellationToken).ConfigureAwait(false);
+                    return executionContext;
+
+                case { Exclusive: true, DelayedCalculation: false }:
+                    await this.jobStore.StartExclusiveExecution(
+                        jobDescriptor.Id,
+                        this.ownerNodeId,
+                        this.GetNextExecutionDelta(jobDescriptor, executionContext),
+                        cancellationToken);
+                    return executionContext;
+
+                case { Exclusive: false, DelayedCalculation: false }:
+                    await this.jobStore.StartExecution(
+                        jobDescriptor.Id,
+                        this.ownerNodeId,
+                        this.GetNextExecutionDelta(jobDescriptor, executionContext),
+                        cancellationToken);
+                    return executionContext;
+
+                default:
+                    // We should always provide next execution time on job start on non-exclusive jobs.
+                    throw new NotSupportedException(
+                        $"Schedule for job {jobDescriptor.Id} of Exclusive={jobDescriptor.Schedule.Exclusive} and Delayed={jobDescriptor.Schedule.DelayedCalculation} not supported");
             }
         }
 
@@ -98,11 +110,10 @@ namespace Lightweight.Scheduler.Core.Execution
             }
         }
 
-        private async Task<(JobExecutionResult result, TimeSpan? NextDelta)> InvokeCore(
+        private async Task<(JobExecutionResult Result, TimeSpan? NextDelta)> InvokeCore(
             IJobDescriptor<TJobId, TVersion> jobDescriptor,
             IExecutionContext context)
         {
-            var result = try
         }
 
         private async Task CompleteJobExecution(
@@ -113,6 +124,9 @@ namespace Lightweight.Scheduler.Core.Execution
             CancellationToken cancellationToken)
         {
             jobDescriptor.Context.Attempt = result == JobExecutionResult.Succeeded ? 0 : executionContext.Attempt;
+
+            
+
             try
             {
                 await this.jobStore.CompleteExecution(jobDescriptor, result, nextExecution, cancellationToken)

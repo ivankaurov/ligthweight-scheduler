@@ -1,10 +1,4 @@
-﻿// -----------------------------------------------------------------------
-// <copyright file="InternalJobExecutor.cs" company="Intermedia">
-//   Copyright © Intermedia.net, Inc. All rights reserved.
-// </copyright>
-// -----------------------------------------------------------------------
-
-namespace Lightweight.Scheduler.Core.Execution
+﻿namespace Lightweight.Scheduler.Core.Execution
 {
     using System;
     using System.Threading;
