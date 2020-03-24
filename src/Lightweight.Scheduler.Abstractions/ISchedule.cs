@@ -6,10 +6,12 @@
     {
         bool Exclusive { get; }
 
-        bool Next(IExecutionContext context, out TimeSpan nextDelta);
+        bool DelayedCalculation { get; }
 
-        bool OnError(IExecutionContext context, Exception ex, out TimeSpan nextDelta);
+        TimeSpan? Next(IExecutionContext context);
 
-        bool OnTimeout(IExecutionContext context, out TimeSpan nextDelta);
+        TimeSpan? OnError(IExecutionContext context, Exception ex);
+
+        TimeSpan? OnTimeout(IExecutionContext context);
     }
 }

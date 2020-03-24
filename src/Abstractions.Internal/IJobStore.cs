@@ -15,6 +15,6 @@
 
         Task StartExecution(IVersionedId<TJobId, TVersion> jobId, TimeSpan? nextExecution, CancellationToken cancellationToken = default);
 
-        Task CompleteExecution(IJobDescriptor<TJobId, TVersion> jobDescriptor, CancellationToken cancellationToken = default);
+        Task CompleteExecution(IJobDescriptor<TJobId, TVersion> jobDescriptor, JobExecutionResult result, TimeSpan? nextExecution, CancellationToken cancellationToken = default);
     }
 }

@@ -5,6 +5,6 @@
 
     public interface IJobExecutor<in TId, TVersion>
     {
-        Task Invoke(IJobDescriptor<TId, TVersion> jobDescriptor, CancellationToken cancellationToken);
+        Task<JobExecutionResult> Invoke(IJobDescriptor<TId, TVersion> jobDescriptor, CancellationToken cancellationToken);
     }
 }

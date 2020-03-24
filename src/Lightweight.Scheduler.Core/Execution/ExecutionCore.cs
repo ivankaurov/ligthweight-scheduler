@@ -80,11 +80,11 @@
             {
                 var sw = Stopwatch.StartNew();
 
-                await this.workerPool.InvokeOnPool(() => this.jobExecutor.Invoke(jobDescriptor, cancellationToken), cancellationToken)
+                var result = await this.workerPool.InvokeOnPool(() => this.jobExecutor.Invoke(jobDescriptor, cancellationToken), cancellationToken)
                     .ConfigureAwait(false);
                 sw.Stop();
 
-                this.logger.LogDebug("Job {id} completed in {elapsed} ({elapsedMs})", jobDescriptor.Id, sw.Elapsed, sw.ElapsedMilliseconds);
+                this.logger.LogDebug("Job {id} completed in {elapsed} ({elapsedMs}). Result={result}", jobDescriptor.Id, sw.Elapsed, sw.ElapsedMilliseconds, result);
             }
             catch (TaskRejectedException ex)
             {
