@@ -14,8 +14,6 @@
     {
         private readonly TNodeId ownerNodeId;
 
-        private readonly IJobFactory<TJobId, TVersion> jobFactory;
-
         private readonly IJobStore<TJobId, TNodeId, TVersion> jobStore;
 
         private readonly InternalJobExecutor<TJobId, TVersion> internalJobExecutor;
@@ -24,13 +22,11 @@
 
         public CoreJobExecutor(
             TNodeId ownerNodeId,
-            IJobFactory<TJobId, TVersion> jobFactory,
             IJobStore<TJobId, TNodeId, TVersion> jobStore,
             InternalJobExecutor<TJobId, TVersion> internalJobExecutor,
             ILogger<CoreJobExecutor<TJobId, TNodeId, TVersion>> logger)
         {
             this.ownerNodeId = ownerNodeId;
-            this.jobFactory = jobFactory;
             this.jobStore = jobStore;
             this.internalJobExecutor = internalJobExecutor;
             this.logger = logger;
@@ -51,17 +47,7 @@
                 return JobExecutionResult.NotStarted;
             }
 
-            (JobExecutionResult Result, TimeSpan? NextDelta) result = (JobExecutionResult.Failed, null);
-            try
-            {
-                result = await this.InvokeCore(jobDescriptor, executionContext).ConfigureAwait(false);
-            }
-            finally
-            {
-                await this.CompleteJobExecution(jobDescriptor, context, result.Result, result.NextDelta, cancellationToken);
-            }
-
-            return result.Result;
+            return await this.InvokeCore(jobDescriptor, executionContext, cancellationToken).ConfigureAwait(false);
         }
 
         private async Task<IExecutionContext> StartJobExecution(IJobDescriptor<TJobId, TVersion> jobDescriptor, CancellationToken cancellationToken)
@@ -110,36 +96,166 @@
             }
         }
 
-        private async Task<(JobExecutionResult Result, TimeSpan? NextDelta)> InvokeCore(
+        private async Task<JobExecutionResult> InvokeCore(
             IJobDescriptor<TJobId, TVersion> jobDescriptor,
-            IExecutionContext context)
+            IExecutionContext context,
+            CancellationToken cancellationToken)
         {
+            try
+            {
+                await this.internalJobExecutor.Invoke(jobDescriptor, context, cancellationToken).ConfigureAwait(false);
+                await this.HandleJobCompletion(jobDescriptor, context).ConfigureAwait(false);
+                return JobExecutionResult.Succeeded;
+            }
+            catch (TimeoutException ex)
+            {
+                await this.HandleJobTimeout(jobDescriptor, ex, context).ConfigureAwait(false);
+                return JobExecutionResult.Succeeded;
+            }
+            catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
+            {
+                await this.HandleJobCancellation(jobDescriptor, ex, context).ConfigureAwait(false);
+                return JobExecutionResult.Cancelled;
+            }
+            catch (Exception ex)
+            {
+                await this.HandleJobFailure(jobDescriptor, ex, context).ConfigureAwait(false);
+                return JobExecutionResult.Failed;
+            }
+        }
+
+        private async Task HandleJobCompletion(
+            IJobDescriptor<TJobId, TVersion> jobDescriptor,
+            IExecutionContext executionContext)
+        {
+            this.logger.LogInformation("Job {id} completed at attempt {attempt}", executionContext.Attempt);
+            jobDescriptor.Context.Attempt = 0;
+
+            await this.CompleteJobExecution(
+                jobDescriptor,
+                JobExecutionResult.Succeeded,
+                jobDescriptor.Schedule.DelayedCalculation ? new Func<TimeSpan?>(() => jobDescriptor.Schedule.Next(executionContext)) : null);
+        }
+
+        private async Task HandleJobTimeout(
+            IJobDescriptor<TJobId, TVersion> jobDescriptor,
+            TimeoutException ex,
+            IExecutionContext executionContext)
+        {
+            this.logger.LogWarning(ex, "Execution of job {id} lead to timeout at attempt", jobDescriptor.Id, executionContext.Attempt);
+
+            await this.CompleteJobExecution(
+                jobDescriptor,
+                JobExecutionResult.Timeouted,
+                jobDescriptor.Schedule.Exclusive ? new Func<TimeSpan?>(() => jobDescriptor.Schedule.OnTimeout(executionContext)) : null);
+        }
+
+        private async Task HandleJobCancellation(
+            IJobDescriptor<TJobId, TVersion> jobDescriptor,
+            OperationCanceledException ex,
+            IExecutionContext executionContext)
+        {
+            this.logger.LogWarning(ex, "Execution of job {id} cancelled due to service stop at attempt", jobDescriptor.Id, executionContext.Attempt);
+
+            await this.CompleteJobExecution(jobDescriptor, JobExecutionResult.Cancelled).ConfigureAwait(false);
+        }
+
+        private async Task HandleJobFailure(
+            IJobDescriptor<TJobId, TVersion> jobDescriptor,
+            Exception ex,
+            IExecutionContext executionContext)
+        {
+            this.logger.LogError(ex, "Execution of job {id} failed at attempt", jobDescriptor.Id, executionContext.Attempt);
+
+            await this.CompleteJobExecution(
+                    jobDescriptor,
+                    JobExecutionResult.Failed,
+                    jobDescriptor.Schedule.Exclusive ? new Func<TimeSpan?>(() => jobDescriptor.Schedule.OnError(executionContext, ex)) : null)
+                .ConfigureAwait(false);
         }
 
         private async Task CompleteJobExecution(
             IJobDescriptor<TJobId, TVersion> jobDescriptor,
-            IExecutionContext executionContext,
             JobExecutionResult result,
-            TimeSpan? nextExecution,
-            CancellationToken cancellationToken)
+            Func<TimeSpan?>? calculateDelta)
         {
-            jobDescriptor.Context.Attempt = result == JobExecutionResult.Succeeded ? 0 : executionContext.Attempt;
+            if (calculateDelta != null)
+            {
+                TimeSpan? nextDelta;
+                try
+                {
+                    nextDelta = calculateDelta();
+                }
+                catch (Exception ex)
+                {
+                    this.logger.LogError(ex, "Failed to calculate text delta. Job will be rescheduled immediately");
+                    await this.CompleteJobExecution(jobDescriptor, result).ConfigureAwait(false);
+                    return;
+                }
 
-            
+                await this.CompleteJobExecution(jobDescriptor, result, nextDelta).ConfigureAwait(false);
+            }
+            else
+            {
+                await this.CompleteJobExecution(jobDescriptor, result).ConfigureAwait(false);
+            }
+        }
+
+        private async Task CompleteJobExecution(
+            IJobDescriptor<TJobId, TVersion> jobDescriptor,
+            JobExecutionResult result,
+            TimeSpan? nextDelta)
+        {
+            this.logger.LogInformation(
+                "Job {id} execution finished: {result}. Next time job will be executed in {nextDelta}",
+                jobDescriptor.Id,
+                result,
+                nextDelta);
 
             try
             {
-                await this.jobStore.CompleteExecution(jobDescriptor, result, nextExecution, cancellationToken)
-                    .ConfigureAwait(false);
-                this.logger.LogTrace(
-                    "Completion information of job {id}: {result} Delta: {delta} stored successfully",
-                    jobDescriptor.Id,
-                    result,
-                    nextExecution);
+                await this.jobStore.CompleteExecution(jobDescriptor, result, nextDelta).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                this.logger.LogCritical(ex, "Failed to complete job {id}: {result} Delta: {delta}", jobDescriptor.Id, result, nextExecution);
+                this.logger.LogCritical(
+                    ex,
+                    "Failed to complete job execution {id} and set next delta to {nextDelta}. Please verify job state manually",
+                    jobDescriptor.Id,
+                    nextDelta);
+            }
+        }
+
+        private async Task CompleteJobExecution(
+            IJobDescriptor<TJobId, TVersion> jobDescriptor,
+            JobExecutionResult result)
+        {
+            try
+            {
+                await this.jobStore.CompleteExecution(jobDescriptor, result)
+                    .ConfigureAwait(false);
+            }
+            catch (ConcurrencyException ex) when (jobDescriptor.Schedule.Exclusive)
+            {
+                this.logger.LogCritical(
+                    ex,
+                    "Failed to free exclusively locked job {id} because it has been updated by someone else. Please verify job state manually",
+                    jobDescriptor.Id);
+            }
+            catch (ConcurrencyException ex)
+            {
+                this.logger.LogInformation(
+                    ex,
+                    "Failed to complete non-exclusive job {id}.It means that changed context hasn't been persisted",
+                    jobDescriptor.Id);
+            }
+            catch (Exception ex) when (jobDescriptor.Schedule.Exclusive)
+            {
+                this.logger.LogCritical(ex, "Failed to free exclusively locked job {id}. Please verify job state manually", jobDescriptor.Id);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Failed to store persistent context for job {id}", jobDescriptor.Id);
             }
         }
     }
